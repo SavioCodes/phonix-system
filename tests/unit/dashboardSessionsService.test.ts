@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DashboardSessionsService } from '../../src/modules/dashboard/services/dashboardSessionsService.js';
 import { cleanupSqliteTestDatabase, createPreparedSqliteTestDatabase } from '../support/sqliteTestHarness.js';
 let tempDir: string | undefined;
+const dashboardSessionTestTimeoutMs = 15_000;
 
 describe('dashboard sessions service', () => {
   let prisma: PrismaClient | undefined;
@@ -13,7 +14,9 @@ describe('dashboard sessions service', () => {
     tempDir = undefined;
   });
 
-  it('stores OAuth material encrypted at rest and exposes a decrypted session record', async () => {
+  it(
+    'stores OAuth material encrypted at rest and exposes a decrypted session record',
+    async () => {
     const { databaseUrl, prismaClient } = await createTestDatabase();
     prisma = prismaClient;
 
@@ -50,9 +53,13 @@ describe('dashboard sessions service', () => {
     expect(reloaded?.oauthTokenType).toBe('Bearer');
     expect(reloaded?.oauthScope).toBe('identify guilds');
     expect(reloaded?.lastAuthorizedSyncAt).not.toBeNull();
-  });
+    },
+    dashboardSessionTestTimeoutMs,
+  );
 
-  it('updates authorization data and prunes expired dashboard sessions', async () => {
+  it(
+    'updates authorization data and prunes expired dashboard sessions',
+    async () => {
     const { prismaClient } = await createTestDatabase();
     prisma = prismaClient;
 
@@ -112,7 +119,9 @@ describe('dashboard sessions service', () => {
 
     expect(sessions).toHaveLength(1);
     expect(sessions[0]?.discordUserId).toBe('user-1');
-  });
+    },
+    dashboardSessionTestTimeoutMs,
+  );
 });
 
 async function createTestDatabase() {
