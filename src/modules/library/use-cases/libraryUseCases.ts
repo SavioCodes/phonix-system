@@ -10,8 +10,13 @@ import { MusicService, normalizePlayableQuery, type QueueMetadata } from '../../
 import { serializeTrack } from '../../music/trackCodec.js';
 import { favoriteRecordToStoredTrack, playlistItemRecordToStoredTrack } from '../trackMapping.js';
 import type { LibraryMutationResult } from './contracts.js';
-import type { NoticeFieldView, NoticeView, TrackCardView } from '../../ui/view-models.js';
-import { toTrackCardView } from '../../ui/trackCards.js';
+import type {
+  CollectionEntryView,
+  CollectionView,
+  NoticeFieldView,
+  NoticeView,
+} from '../../ui/view-models.js';
+import { formatSourceLabel, toTrackCardView } from '../../ui/trackCards.js';
 
 interface LibraryUseCaseDeps {
   player: Player;
@@ -107,40 +112,49 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       });
     },
 
-    async favoriteList(userId: string): Promise<NoticeView> {
+    async favoriteList(userId: string): Promise<LibraryMutationResult> {
       const favorites = await deps.favorites.list(userId);
       const visibleFavorites = favorites.slice(0, 10);
-      return notice(
-        'info',
-        'PHONIX | Seus favoritos',
-        favorites.length > 0
-          ? `Voce tem **${favorites.length}** favorito(s) salvo(s) prontos para tocar de novo com indice rapido.`
-          : 'Voce ainda nao salvou favoritos. Use `/favorite add` com a faixa atual ou informe uma busca/URL para montar sua biblioteca.',
-        {
-          fields: favorites.length > 0
-            ? [
-                listField(
-                  'Favoritos salvos',
-                  visibleFavorites.map((item, index) => `${index + 1}. **${item.title}** - ${item.duration}`),
-                  favorites.length - visibleFavorites.length,
-                ),
-                {
-                  name: 'Fluxo rapido',
-                  value: [
-                    'Toque um indice com `/favorite play index:x`.',
-                    'Remova um indice com `/favorite remove index:x`.',
-                    'Use `/favorite add` sem query para reaproveitar a faixa atual.',
-                  ].join('\n'),
-                  inline: false,
-                },
-              ]
-            : undefined,
-          hint:
-            favorites.length > 0
-              ? 'Use `/favorite play index:1` ou `!favorite play 1` para tocar um favorito salvo.'
-              : 'Comece com `/favorite add` usando a musica atual ou uma busca direta.',
-        },
-      );
+      return collectionView({
+        title: 'PHONIX | Seus favoritos',
+        description:
+          favorites.length > 0
+            ? `Voce tem **${favorites.length}** favorito(s) salvo(s) prontos para tocar de novo com indice rapido.`
+            : 'Voce ainda nao salvou favoritos. Use `/favorite add` com a faixa atual ou informe uma busca/URL para montar sua biblioteca.',
+        collectionTitle: 'Favoritos salvos',
+        leadTrack: visibleFavorites[0]
+          ? toTrackCardView(visibleFavorites[0], {
+              sourceLabel: formatSourceLabel(visibleFavorites[0].source),
+            })
+          : null,
+        entries: visibleFavorites.map((item, index) =>
+          collectionEntry({
+            position: index + 1,
+            title: item.title,
+            subtitle: item.author || 'Desconhecido',
+            duration: item.duration,
+            source: item.source,
+            url: item.url,
+          }),
+        ),
+        hiddenEntryCount: favorites.length - visibleFavorites.length,
+        summaryTitle: 'Biblioteca pessoal',
+        summaryLines: [
+          `Favoritos salvos: **${favorites.length}**`,
+          `Recorte visivel: **${visibleFavorites.length}**`,
+          'Atalho rapido: **play/remove por indice**',
+        ],
+        actionTitle: 'Fluxo rapido',
+        actionLines: [
+          'Toque um indice com `/favorite play index:x`.',
+          'Remova um indice com `/favorite remove index:x`.',
+          'Use `/favorite add` sem query para reaproveitar a faixa atual.',
+        ],
+        hint:
+          favorites.length > 0
+            ? 'Use `/favorite play index:1` ou `!favorite play 1` para tocar um favorito salvo.'
+            : 'Comece com `/favorite add` usando a musica atual ou uma busca direta.',
+      });
     },
 
     async favoritePlay(input: FavoriteIndexInput): Promise<LibraryMutationResult> {
@@ -264,41 +278,44 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       });
     },
 
-    async playlistList(input: PlaylistListInput): Promise<NoticeView> {
+    async playlistList(input: PlaylistListInput): Promise<LibraryMutationResult> {
       if (!input.name) {
         const playlists = await deps.playlists.list(input.user.id);
         const visiblePlaylists = playlists.slice(0, 12);
-        return notice(
-          'info',
-          'PHONIX | Suas playlists',
-          playlists.length > 0
-            ? `Voce tem **${playlists.length}** playlist(s) pessoal(is) salva(s) no PHONIX.`
-            : 'Voce ainda nao criou playlists. Use `/playlist create` para montar sua primeira lista.',
-          {
-            fields: playlists.length > 0
-              ? [
-                  listField(
-                    'Playlists salvas',
-                    visiblePlaylists.map((playlist) => `- **${playlist.name}**`),
-                    playlists.length - visiblePlaylists.length,
-                  ),
-                  {
-                    name: 'Fluxo rapido',
-                    value: [
-                      'Abra uma playlist com `/playlist list name:"nome"`.',
-                      'Toque uma playlist com `/playlist play name:"nome"`.',
-                      'Crie outra com `/playlist create name:"nova-playlist"`.',
-                    ].join('\n'),
-                    inline: false,
-                  },
-                ]
-              : undefined,
-            hint:
-              playlists.length > 0
-                ? 'Use `/playlist list name:"nome"` para ver o conteudo ou `/playlist play name:"nome"` para tocar uma delas.'
-                : 'Comece com `/playlist create name:"mix da madrugada"`.',
-          },
-        );
+        return collectionView({
+          title: 'PHONIX | Suas playlists',
+          description:
+            playlists.length > 0
+              ? `Voce tem **${playlists.length}** playlist(s) pessoal(is) salva(s) no PHONIX.`
+              : 'Voce ainda nao criou playlists. Use `/playlist create` para montar sua primeira lista.',
+          collectionTitle: 'Playlists salvas',
+          leadTrack: null,
+          entries: visiblePlaylists.map((playlist, index) => ({
+            position: index + 1,
+            title: playlist.name,
+            subtitle: `Atualizada em ${formatShortDate(playlist.updatedAt)}`,
+            duration: null,
+            sourceLabel: null,
+            url: null,
+          })),
+          hiddenEntryCount: playlists.length - visiblePlaylists.length,
+          summaryTitle: 'Biblioteca pessoal',
+          summaryLines: [
+            `Playlists salvas: **${playlists.length}**`,
+            `Recorte visivel: **${visiblePlaylists.length}**`,
+            'Ordenacao: **mais recentes primeiro**',
+          ],
+          actionTitle: 'Fluxo rapido',
+          actionLines: [
+            'Abra uma playlist com `/playlist list name:"nome"`.',
+            'Toque uma playlist com `/playlist play name:"nome"`.',
+            'Crie outra com `/playlist create name:"nova-playlist"`.',
+          ],
+          hint:
+            playlists.length > 0
+              ? 'Use `/playlist list name:"nome"` para ver o conteudo ou `/playlist play name:"nome"` para tocar uma delas.'
+              : 'Comece com `/playlist create name:"mix da madrugada"`.',
+        });
       }
 
       const items = await deps.playlists.listItems(input.user.id, input.name);
@@ -309,36 +326,45 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       }
 
       const visibleItems = items.slice(0, 10);
-      return notice(
-        'info',
-        `PHONIX | Playlist ${input.name.trim()}`,
-        items.length > 0
-          ? `A playlist **${input.name.trim()}** tem **${items.length}** faixa(s) salva(s) e esta pronta para tocar.`
-          : 'Essa playlist ainda esta vazia. Use `/playlist add` com a faixa atual ou informe uma busca/URL.',
-        {
-          fields: items.length > 0
-            ? [
-                listField(
-                  'Faixas salvas',
-                  visibleItems.map((item) => `${item.position}. **${item.title}** - ${item.duration}`),
-                  items.length - visibleItems.length,
-                ),
-                {
-                  name: 'Como agir nesta playlist',
-                  value: [
-                    `Toque tudo com \`/playlist play name:"${input.name.trim()}"\`.`,
-                    `Remova um item com \`/playlist remove name:"${input.name.trim()}" index:x\`.`,
-                  ].join('\n'),
-                  inline: false,
-                },
-              ]
-            : undefined,
-          hint:
-            items.length > 0
-              ? 'Use `/playlist play name:"' + input.name.trim() + '"` para iniciar essa playlist.'
-              : 'Use `/playlist add name:"' + input.name.trim() + '"` para guardar a faixa atual ou uma nova busca.',
-        },
-      );
+      return collectionView({
+        title: `PHONIX | Playlist ${input.name.trim()}`,
+        description:
+          items.length > 0
+            ? `A playlist **${input.name.trim()}** tem **${items.length}** faixa(s) salva(s) e esta pronta para tocar.`
+            : 'Essa playlist ainda esta vazia. Use `/playlist add` com a faixa atual ou informe uma busca/URL.',
+        collectionTitle: 'Faixas salvas',
+        leadTrack: visibleItems[0]
+          ? toTrackCardView(visibleItems[0], {
+              sourceLabel: formatSourceLabel(visibleItems[0].source),
+            })
+          : null,
+        entries: visibleItems.map((item) =>
+          collectionEntry({
+            position: item.position,
+            title: item.title,
+            subtitle: item.author || 'Desconhecido',
+            duration: item.duration,
+            source: item.source,
+            url: item.url,
+          }),
+        ),
+        hiddenEntryCount: items.length - visibleItems.length,
+        summaryTitle: 'Leitura da playlist',
+        summaryLines: [
+          `Playlist alvo: **${input.name.trim()}**`,
+          `Faixas salvas: **${items.length}**`,
+          `Recorte visivel: **${visibleItems.length}**`,
+        ],
+        actionTitle: 'Como agir nesta playlist',
+        actionLines: [
+          `Toque tudo com \`/playlist play name:"${input.name.trim()}"\`.`,
+          `Remova um item com \`/playlist remove name:"${input.name.trim()}" index:x\`.`,
+        ],
+        hint:
+          items.length > 0
+            ? 'Use `/playlist play name:"' + input.name.trim() + '"` para iniciar essa playlist.'
+            : 'Use `/playlist add name:"' + input.name.trim() + '"` para guardar a faixa atual ou uma nova busca.',
+      });
     },
 
     async playlistPlay(input: PlaylistNamedInput): Promise<LibraryMutationResult> {
@@ -407,40 +433,49 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       });
     },
 
-    async history(userId: string): Promise<NoticeView> {
+    async history(userId: string): Promise<LibraryMutationResult> {
       const items = await deps.history.list(userId);
       const visibleItems = items.slice(0, 10);
-      return notice(
-        'info',
-        'PHONIX | Historico recente',
-        items.length > 0
-          ? `Estas sao as ultimas **${items.length}** faixa(s) registradas no seu uso recente do PHONIX.`
-          : 'Seu historico ainda esta vazio. Toque algo com `/play` e o PHONIX passa a registrar as ultimas faixas para voce.',
-        {
-          fields: items.length > 0
-            ? [
-                listField(
-                  'Ultimas reproducoes',
-                  visibleItems.map((item, index) => `${index + 1}. **${item.title}** - ${item.duration}`),
-                  items.length - visibleItems.length,
-                ),
-                {
-                  name: 'Como reaproveitar',
-                  value: [
-                    'Repita a busca manualmente com `/play nome-da-faixa`.',
-                    'Guarde o que gostar com `/favorite add query:nome-da-faixa`.',
-                    'Monte uma selecao com `/playlist add name:"nome" query:nome-da-faixa`.',
-                  ].join('\n'),
-                  inline: false,
-                },
-              ]
-            : undefined,
-          hint:
-            items.length > 0
-              ? 'O historico e uma memoria rapida de busca. Hoje ele nao toca por indice, entao use o titulo como base para `/play`, `/favorite add query:...` ou `/playlist add`.'
-              : 'Comece com `/play` ou `!tocar` para o PHONIX registrar seu uso.',
-        },
-      );
+      return collectionView({
+        title: 'PHONIX | Historico recente',
+        description:
+          items.length > 0
+            ? `Estas sao as ultimas **${items.length}** faixa(s) registradas no seu uso recente do PHONIX.`
+            : 'Seu historico ainda esta vazio. Toque algo com `/play` e o PHONIX passa a registrar as ultimas faixas para voce.',
+        collectionTitle: 'Ultimas reproducoes',
+        leadTrack: visibleItems[0]
+          ? toTrackCardView(visibleItems[0], {
+              sourceLabel: formatSourceLabel(visibleItems[0].source),
+            })
+          : null,
+        entries: visibleItems.map((item, index) =>
+          collectionEntry({
+            position: index + 1,
+            title: item.title,
+            subtitle: item.author || 'Desconhecido',
+            duration: item.duration,
+            source: item.source,
+            url: item.url,
+          }),
+        ),
+        hiddenEntryCount: items.length - visibleItems.length,
+        summaryTitle: 'Memoria recente',
+        summaryLines: [
+          `Faixas registradas: **${items.length}**`,
+          `Recorte visivel: **${visibleItems.length}**`,
+          'Reuso direto por indice: **nao implementado ainda**',
+        ],
+        actionTitle: 'Como reaproveitar',
+        actionLines: [
+          'Repita a busca manualmente com `/play nome-da-faixa`.',
+          'Guarde o que gostar com `/favorite add query:nome-da-faixa`.',
+          'Monte uma selecao com `/playlist add name:"nome" query:nome-da-faixa`.',
+        ],
+        hint:
+          items.length > 0
+            ? 'O historico e uma memoria rapida de busca. Hoje ele nao toca por indice, entao use o titulo como base para `/play`, `/favorite add query:...` ou `/playlist add`.'
+            : 'Comece com `/play` ou `!tocar` para o PHONIX registrar seu uso.',
+      });
     },
   };
 }
@@ -508,10 +543,31 @@ function trackResult(
   };
 }
 
-function listField(name: string, lines: string[], hiddenCount = 0): NoticeFieldView {
+function collectionView(input: Omit<CollectionView, 'kind'>): CollectionView {
   return {
-    name,
-    value: [...lines, hiddenCount > 0 ? `...e mais **${hiddenCount}** item(ns) nao exibido(s) neste resumo.` : null].filter(Boolean).join('\n'),
-    inline: false,
+    kind: 'collection',
+    ...input,
   };
+}
+
+function collectionEntry(input: {
+  position: number | null;
+  title: string;
+  subtitle: string | null;
+  duration: string | null;
+  source: string | null | undefined;
+  url: string | null | undefined;
+}): CollectionEntryView {
+  return {
+    position: input.position,
+    title: input.title,
+    subtitle: input.subtitle,
+    duration: input.duration,
+    sourceLabel: formatSourceLabel(input.source),
+    url: typeof input.url === 'string' && input.url.length > 0 ? input.url : null,
+  };
+}
+
+function formatShortDate(value: Date) {
+  return value.toISOString().slice(0, 10);
 }

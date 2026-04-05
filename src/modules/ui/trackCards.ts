@@ -13,3 +13,24 @@ export function toTrackCardView(
     sourceLabel: options.sourceLabel ?? null,
   };
 }
+
+export function formatSourceLabel(
+  source: string | null | undefined,
+  options: { routeKind?: 'native' | 'bridge' | 'unknown' } = {},
+) {
+  const normalized = (source ?? '').toLowerCase();
+
+  if (normalized.includes('youtube')) {
+    return 'YouTube';
+  }
+
+  if (normalized.includes('spotify')) {
+    return options.routeKind === 'native' ? 'Spotify' : 'Spotify (bridge)';
+  }
+
+  if (normalized.includes('soundcloud')) {
+    return options.routeKind === 'bridge' ? 'SoundCloud (fallback interno)' : 'SoundCloud';
+  }
+
+  return null;
+}

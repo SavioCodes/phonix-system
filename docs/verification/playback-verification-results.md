@@ -27,6 +27,7 @@ Resultado confirmado por `npm run verify:playback` no ambiente atual:
 - `fidelity/youtubei` esta `BLOQUEADO NESTE AMBIENTE` por falha upstream de `decipher`.
 - o runtime do PHONIX detecta esse bloqueio no startup e sobe degradado para `compatibility`, evitando a primeira tentativa quebrada e tratando `compatibility` como caminho operacional efetivo desta instalacao.
 - a rodada visual nova de `play`/`queue`/`nowplaying` continua `PARCIAL` ate validacao manual no Discord real, porque a suite automatica garante o contrato de `Components V2`, mas nao a percepcao final dentro do cliente Discord.
+- a rodada visual nova de `recover`, `favorite list`, `playlist list` e `history` tambem continua `PARCIAL` pelo mesmo motivo: o contrato e os testes estao fechados, mas a leitura final no cliente Discord ainda precisa de rodada manual auditavel.
 
 ## Matriz A/B do ambiente atual
 
@@ -57,7 +58,11 @@ $env:YOUTUBE_PLAYBACK_PROFILE='fidelity'; npm run start
 
 3. Em cada rodada, use `/doctor` antes do `/play`
 4. Confirme tambem se o resultado do `/play` explicou com clareza a entrada na call e se o `nowplaying` mostrou artwork/origem coerentes
-5. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
+5. Valide tambem `/recover`, `/favorite list`, `/playlist list` e `/history`, marcando se:
+   - o painel continua escaneavel em desktop e mobile
+   - artwork/capa so aparece quando houver metadata real
+   - hints e labels continuam claros em sessao parcial/quebrada
+6. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
 
 Quando a matriz estiver completa, este documento pode sair de `PARCIAL` e virar o registro final da Fase 4, mas sem fingir que o caminho nativo do `youtubei` esta saudavel neste ambiente se isso nao se confirmar.
 

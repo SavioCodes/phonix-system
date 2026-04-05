@@ -35,6 +35,7 @@
 - A revisao `v2.0.5` adiciona um eixo novo de operacao: owner access centralizado, DM automatica de online, namespace `/owner` e leitura dedicada da guild oficial.
 - A revisao `v2.1.0` fortalece a continuidade operacional por guild com `Smart Session`: recovery mais claro, session health estruturada, deteccao de sessao parcial/quebrada e melhor leitura em `recover`, `queue`, `nowplaying` e `doctor`.
 - A revisao `v2.2.0` abre uma linha nova de superficie Discord: paineis densos migraram seletivamente para `Components V2`, enquanto `help` e notices compactos continuam classicos para preservar ergonomia, compatibilidade e manutencao.
+- O passe seguinte ainda dentro da mesma linha `v2.2.0` levou os itens mais fortes da fila curta para o mesmo patamar visual: `recover`, `favorite list`, `playlist list` e `history` agora usam paineis dedicados, em vez de notices genéricos.
 - O passe visual mais recente da linha `v2.1.0` reforca a apresentacao dentro do Discord: notices com campos e hint contextual, `play` mais escaneavel, `queue` e `nowplaying` com cara de painel de sessao e `config`/`doctor` organizados por blocos de leitura rapida.
 - O hardening mais recente dentro da mesma linha fechou gaps de UX e dominio ainda reais: favoritos/playlists agora explicam origem do atalho e impacto na sessao, `config` passou a devolver validacoes de prefixo/volume com titulos claros e `help`/`admin` mostram melhor o estado atual da guild.
 - O passe seguinte ainda dentro da mesma linha aprofundou a clareza operacional: `loop` ficou mais legivel no slash e no prefixo, `history` e a biblioteca passaram a orientar melhor reuso real, e a ajuda passou a sugerir o atalho certo com base no estado atual da guild.
@@ -81,13 +82,17 @@
 - [x] Reanalisar docs oficiais do Discord, `discord.js` e `discord-player` antes de decidir a estrategia visual
 - [x] Introduzir um design system hibrido para mensagens do Discord, com assets de branding reais do PHONIX
 - [x] Adotar `Components V2` em `play`, `queue`, `nowplaying`, `config view` e `doctor`
+- [x] Promover `recover` para um painel dedicado de recovery, sem rebaixar o fluxo a notice generico
+- [x] Promover `favorite list`, `playlist list` e `history` para paineis de colecao com metadata visual quando houver artwork salvo
 - [x] Manter `help`, notices compactos e fluxos de biblioteca em embeds/classic action rows por criterio de ergonomia e manutencao
 - [x] Remover a dependencia de emoji como linguagem visual principal na camada de superficie Discord
 - [x] Reorganizar a hierarquia visual de `queue`, `nowplaying`, `doctor` e `config`
 - [x] Mover o loading visual do slash `play` para o estado nativo de defer do Discord, preservando o payload final em `Components V2`
+- [x] Expandir o runbook da `v2.2.0` para incluir validacao visual de `recover` e das superficies principais da library
 - [x] Atualizar `README`, `ARCHITECTURE`, `PROJECT_TRACKER`, `CHANGELOG` e docs operacionais/verification impactadas
 - [x] Alinhar runtime e versao publica para `2.2.0`
 - [ ] Validar manualmente a leitura final dos paineis `Components V2` no cliente Discord desktop/mobile
+- [ ] Validar manualmente `recover`, `favorite list`, `playlist list` e `history` em Discord real com foco em densidade, artwork e hints
 - [ ] Confirmar em ambiente real se a densidade visual continua boa em guilds com `session health` parcial ou quebrada
 
 ### `v2.1.0` - Smart Session

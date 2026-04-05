@@ -266,7 +266,7 @@ describe('playback use cases', () => {
     expect(result.track.sourceLabel).toBe('Spotify (bridge)');
   });
 
-  it('recover restores the persisted session and returns a success notice', async () => {
+  it('recover restores the persisted session and returns a dedicated recovery view', async () => {
     const ensurePlayableVoiceChannel = vi.fn().mockResolvedValue({ id: 'voice-1' });
     const recoverForMember = vi.fn().mockResolvedValue({
       requestedTrackCount: 4,
@@ -310,15 +310,16 @@ describe('playback use cases', () => {
       metadata,
     });
 
-    expect(result.kind).toBe('notice');
-    if (result.kind !== 'notice') {
-      throw new Error('Expected notice result.');
+    expect(result.kind).toBe('recover');
+    if (result.kind !== 'recover') {
+      throw new Error('Expected recover result.');
     }
     expect(result.variant).toBe('warning');
     expect(result.description).toContain('**3** de **4** faixa(s)');
-    expect(result.fields?.some((field) => field.name === 'Resumo do recovery' && field.value.includes('Puladas: **1**'))).toBe(true);
-    expect(result.fields?.some((field) => field.name === 'Configuracao reaplicada' && field.value.includes('82%'))).toBe(true);
-    expect(result.fields?.some((field) => field.name === 'Saude da sessao' && field.value.includes('parcial'))).toBe(true);
+    expect(result.summaryLines.some((line) => line.includes('Puladas: **1**'))).toBe(true);
+    expect(result.settingsLines.some((line) => line.includes('82%'))).toBe(true);
+    expect(result.sessionLines.some((line) => line.includes('parcial'))).toBe(true);
+    expect(result.hint).toContain('/queue');
     expect(ensurePlayableVoiceChannel).toHaveBeenCalledWith(member);
     expect(recoverForMember).toHaveBeenCalledWith(member, metadata, user);
   });

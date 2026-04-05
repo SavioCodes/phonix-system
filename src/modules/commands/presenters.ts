@@ -14,6 +14,10 @@ export function presentCommandView(result: CommandView): CommandReplyPayload {
       return {
         embeds: [embeds.trackCard(result.title, result.track, result.description, { fields: result.fields, hint: result.hint })],
       };
+    case 'recover':
+      return componentsV2.recoverResult(result);
+    case 'collection':
+      return componentsV2.collectionView(result);
     case 'play':
       return componentsV2.playResult(result);
     case 'queue':

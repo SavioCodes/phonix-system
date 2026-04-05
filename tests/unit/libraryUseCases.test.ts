@@ -257,6 +257,49 @@ describe('library use cases', () => {
     expect(playStoredTracks).toHaveBeenCalledTimes(1);
   });
 
+  it('favoriteList returns a collection panel with media metadata when favorites exist', async () => {
+    const useCases = createLibraryUseCases({
+      player: {} as never,
+      ffmpeg: {
+        available: true,
+        executable: 'ffmpeg',
+        detail: 'ok',
+      },
+      music: {} as never,
+      favorites: {
+        list: vi.fn().mockResolvedValue([
+          {
+            title: 'Night Drive',
+            author: 'Nova',
+            url: 'https://example.com/track-1',
+            thumbnail: 'https://example.com/thumb.png',
+            duration: '4:02',
+            source: 'youtube',
+          },
+        ]),
+      } as never,
+      playlists: {} as never,
+      history: {} as never,
+    });
+
+    const result = await useCases.favoriteList('user-1');
+
+    expect(result.kind).toBe('collection');
+    if (result.kind !== 'collection') {
+      throw new Error('Expected collection result.');
+    }
+
+    expect(result.collectionTitle).toBe('Favoritos salvos');
+    expect(result.leadTrack?.title).toBe('Night Drive');
+    expect(result.leadTrack?.sourceLabel).toBe('YouTube');
+    expect(result.entries[0]).toMatchObject({
+      position: 1,
+      title: 'Night Drive',
+      sourceLabel: 'YouTube',
+    });
+    expect(result.actionLines.some((line) => line.includes('/favorite play'))).toBe(true);
+  });
+
   it('history returns a structured reuse guide alongside the recent items list', async () => {
     const useCases = createLibraryUseCases({
       player: {} as never,
@@ -272,11 +315,19 @@ describe('library use cases', () => {
         list: vi.fn().mockResolvedValue([
           {
             title: 'Night Drive',
+            author: 'Nova',
+            url: 'https://example.com/track-1',
+            thumbnail: 'https://example.com/thumb.png',
             duration: '4:02',
+            source: 'youtube',
           },
           {
             title: 'Orbit',
+            author: 'Nova',
+            url: 'https://example.com/track-2',
+            thumbnail: 'https://example.com/thumb2.png',
             duration: '3:50',
+            source: 'youtube',
           },
         ]),
       } as never,
@@ -284,9 +335,15 @@ describe('library use cases', () => {
 
     const result = await useCases.history('user-1');
 
-    expect(result.kind).toBe('notice');
-    expect(result.fields?.some((field) => field.name === 'Ultimas reproducoes' && field.value.includes('Night Drive'))).toBe(true);
-    expect(result.fields?.some((field) => field.name === 'Como reaproveitar' && field.value.includes('/favorite add'))).toBe(true);
+    expect(result.kind).toBe('collection');
+    if (result.kind !== 'collection') {
+      throw new Error('Expected collection result.');
+    }
+
+    expect(result.collectionTitle).toBe('Ultimas reproducoes');
+    expect(result.entries.some((entry) => entry.title === 'Night Drive')).toBe(true);
+    expect(result.actionLines.some((line) => line.includes('/favorite add'))).toBe(true);
+    expect(result.summaryLines.some((line) => line.includes('nao implementado ainda'))).toBe(true);
     expect(result.hint).toContain('nao toca por indice');
   });
 });

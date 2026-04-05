@@ -1,7 +1,13 @@
 import { MessageFlags } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import { presentCommandView, presentHelpResult } from '../../src/modules/commands/presenters.js';
-import type { HelpResultView, NowPlayingView, QueueView } from '../../src/modules/ui/view-models.js';
+import type {
+  CollectionView,
+  HelpResultView,
+  NowPlayingView,
+  QueueView,
+  RecoverView,
+} from '../../src/modules/ui/view-models.js';
 import { renderDiscordValue, renderEmbed } from '../support/discordPayload.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
 
@@ -27,6 +33,28 @@ describe('Components V2 presentation', () => {
     const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload.components?.[0] as never);
     expect(rendered?.components?.some((component) => component.content?.includes('PHONIX | Tocando agora'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Progresso'))).toBe(true);
+    expect(rendered?.components?.some((component) => component.content?.includes('Night Drive'))).toBe(true);
+  });
+
+  it('renders recover as a dedicated Components V2 recovery panel', () => {
+    const payload = presentCommandView(createRecoverView());
+
+    expect(payload.flags).toBe(MessageFlags.IsComponentsV2);
+    expect(payload.embeds).toBeUndefined();
+
+    const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload.components?.[0] as never);
+    expect(rendered?.components?.some((component) => component.content?.includes('Sessao restaurada com ressalvas'))).toBe(true);
+    expect(rendered?.components?.some((component) => component.content?.includes('Resumo do recovery'))).toBe(true);
+  });
+
+  it('renders library collections as Components V2 panels', () => {
+    const payload = presentCommandView(createCollectionView());
+
+    expect(payload.flags).toBe(MessageFlags.IsComponentsV2);
+    expect(payload.embeds).toBeUndefined();
+
+    const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload.components?.[0] as never);
+    expect(rendered?.components?.some((component) => component.content?.includes('Favoritos salvos'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Night Drive'))).toBe(true);
   });
 
@@ -114,6 +142,60 @@ function createNowPlayingView(): NowPlayingView {
       lastRecoverySummary: '2 restaurada(s) e 0 pulada(s)',
       currentRouteLabel: 'youtube/youtube-dl',
     },
+  };
+}
+
+function createRecoverView(): RecoverView {
+  return {
+    kind: 'recover',
+    variant: 'warning',
+    title: 'PHONIX | Sessao restaurada com ressalvas',
+    description: 'A sessao voltou para o seu canal, mas apenas **3** de **4** faixa(s) continuaram tocaveis.',
+    track: {
+      title: 'Night Drive',
+      author: 'Nova',
+      duration: '4:02',
+      thumbnail: 'https://example.com/thumb.png',
+      url: 'https://youtube.com/watch?v=night-drive',
+      sourceLabel: 'YouTube',
+    },
+    summaryLines: ['Restauradas: **3**', 'Puladas: **1**'],
+    settingsLines: ['Volume reaplicado: **82%**'],
+    sessionLines: ['Saude: **parcial**'],
+    hint: 'Use `/queue` para revisar a sessao.',
+  };
+}
+
+function createCollectionView(): CollectionView {
+  return {
+    kind: 'collection',
+    title: 'PHONIX | Seus favoritos',
+    description: 'Voce tem **2** favorito(s) salvo(s).',
+    collectionTitle: 'Favoritos salvos',
+    leadTrack: {
+      title: 'Night Drive',
+      author: 'Nova',
+      duration: '4:02',
+      thumbnail: 'https://example.com/thumb.png',
+      url: 'https://youtube.com/watch?v=night-drive',
+      sourceLabel: 'YouTube',
+    },
+    entries: [
+      {
+        position: 1,
+        title: 'Night Drive',
+        subtitle: 'Nova',
+        duration: '4:02',
+        sourceLabel: 'YouTube',
+        url: 'https://youtube.com/watch?v=night-drive',
+      },
+    ],
+    hiddenEntryCount: 0,
+    summaryTitle: 'Biblioteca pessoal',
+    summaryLines: ['Favoritos salvos: **2**'],
+    actionTitle: 'Fluxo rapido',
+    actionLines: ['Use `/favorite play index:1`.'],
+    hint: 'Use `/favorite play index:1` para tocar um favorito salvo.',
   };
 }
 

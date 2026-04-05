@@ -23,6 +23,8 @@ O foco desta fase e validar:
 - leitura correta do `doctor`
 - clareza do resultado final de `/play` entre `tocando agora` e `aguardando na fila`
 - painel visual de `nowplaying` com artwork/capa e origem coerente com a faixa atual
+- painel visual de `recover` com contagem coerente de restauradas/puladas e leitura real de session health
+- paineis de biblioteca (`favorite list`, `playlist list`, `history`) com boa escaneabilidade, sem poluicao visual e com artwork quando a metadata existir
 
 ## Artefatos desta fase
 
@@ -108,6 +110,12 @@ Dentro do Discord:
    - diferenca audivel percebida
    - se o resultado do `/play` explicou claramente entrada na call, reaproveitamento de sessao ou fila
    - se o painel de `nowplaying` mostrou thumbnail/capa, origem e link de forma coerente
+6. Depois do primeiro playback da rodada, valide tambem:
+   - `/recover` quando houver sessao salva, confirmando painel, contagem e hints
+   - `/favorite list`
+   - `/playlist list`
+   - `/history`
+7. Registre se os paineis continuaram legiveis tanto em desktop quanto em mobile.
 
 ### Rodada B - `fidelity`
 
@@ -134,6 +142,12 @@ Dentro do Discord:
    - diferenca audivel percebida
    - se o resultado do `/play` continuou claro mesmo com downgrade ou bloqueio de pipeline
    - se o painel de `nowplaying` manteve artwork/capa e origem coerentes no perfil efetivo
+6. Se houver sessao salva ou itens em biblioteca, repita:
+   - `/recover`
+   - `/favorite list`
+   - `/playlist list`
+   - `/history`
+7. Registre tambem se a densidade visual continua boa em desktop e mobile quando `session health` estiver parcial ou quando `fidelity` cair para `compatibility`.
 
 ## Planilha de resultado sugerida
 

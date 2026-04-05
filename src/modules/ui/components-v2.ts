@@ -10,10 +10,13 @@ import {
 import { MessageFlags, type MessageCreateOptions } from 'discord.js';
 import type {
   DoctorResultView,
+  CollectionEntryView,
+  CollectionView,
   GuildConfigResult,
   NowPlayingView,
   PlayResultView,
   QueueView,
+  RecoverView,
   TrackCardView,
 } from './view-models.js';
 import { theme } from './theme.js';
@@ -24,6 +27,106 @@ type ComponentsV2Payload = {
 };
 
 export const componentsV2 = {
+  recoverResult(view: RecoverView): ComponentsV2Payload {
+    const container = createPanelContainer(
+      view.variant === 'warning' ? theme.colors.solarFlare : theme.colors.electricBlue,
+    );
+
+    container
+      .addTextDisplayComponents(
+        panelHeader('Recovery Surface', view.title, view.description),
+      )
+      .addSeparatorComponents(panelSeparator());
+
+    if (view.track) {
+      container.addSectionComponents(
+        detailSection(
+          'Faixa em destaque',
+          [
+            `**${view.track.title}**`,
+            `Autor: **${view.track.author || 'Desconhecido'}**`,
+            `Duracao: **${view.track.duration}**`,
+            view.track.sourceLabel ? `Origem: **${view.track.sourceLabel}**` : null,
+            buildTrackLinkLine(view.track),
+          ],
+          view.track.thumbnail,
+          view.track.title,
+        ),
+      );
+
+      if (view.track.thumbnail) {
+        container.addMediaGalleryComponents(trackMedia(view.track));
+      }
+    } else {
+      container.addTextDisplayComponents(
+        textBlock('Faixa em destaque', ['Nenhuma faixa restaurada ficou identificada a tempo para destaque visual nesta tentativa.']),
+      );
+    }
+
+    container.addTextDisplayComponents(
+      textBlock('Resumo do recovery', view.summaryLines),
+      textBlock('Configuracao reaplicada', view.settingsLines),
+      textBlock('Saude da sessao', view.sessionLines),
+    );
+
+    if (view.hint) {
+      container.addTextDisplayComponents(textBlock('Proximo passo', [view.hint]));
+    }
+
+    return panelPayload(container);
+  },
+
+  collectionView(view: CollectionView): ComponentsV2Payload {
+    const container = createPanelContainer(theme.colors.cyanSignal);
+
+    container
+      .addTextDisplayComponents(
+        panelHeader('Library Surface', view.title, view.description),
+      )
+      .addSeparatorComponents(panelSeparator());
+
+    if (view.leadTrack) {
+      container.addSectionComponents(
+        detailSection(
+          'Item em destaque',
+          [
+            `**${view.leadTrack.title}**`,
+            `Autor: **${view.leadTrack.author || 'Desconhecido'}**`,
+            `Duracao: **${view.leadTrack.duration}**`,
+            view.leadTrack.sourceLabel ? `Origem: **${view.leadTrack.sourceLabel}**` : null,
+            buildTrackLinkLine(view.leadTrack),
+          ],
+          view.leadTrack.thumbnail,
+          view.leadTrack.title,
+        ),
+      );
+
+      if (view.leadTrack.thumbnail) {
+        container.addMediaGalleryComponents(trackMedia(view.leadTrack));
+      }
+    }
+
+    container.addTextDisplayComponents(
+      textBlock(
+        view.collectionTitle,
+        view.entries.length > 0
+          ? [
+              ...view.entries.map((entry) => formatCollectionEntry(entry)),
+              view.hiddenEntryCount > 0 ? `...e mais **${view.hiddenEntryCount}** item(ns) fora do recorte visual.` : null,
+            ]
+          : ['Nenhum item disponivel neste momento.'],
+      ),
+      textBlock(view.summaryTitle, view.summaryLines),
+      textBlock(view.actionTitle, view.actionLines),
+    );
+
+    if (view.hint) {
+      container.addTextDisplayComponents(textBlock('Proximo passo', [view.hint]));
+    }
+
+    return panelPayload(container);
+  },
+
   playResult(view: PlayResultView): ComponentsV2Payload {
     const container = createPanelContainer(playResultColor(view));
 
@@ -398,6 +501,18 @@ function compactLines(lines: Array<string | null | undefined>) {
 
 function buildTrackLinkLine(track: TrackCardView) {
   return track.url ? `[Abrir no source](${track.url})` : null;
+}
+
+function formatCollectionEntry(entry: CollectionEntryView) {
+  const prefix = entry.position === null ? '-' : `${entry.position}.`;
+  const segments = [
+    `${prefix} **${entry.title}**`,
+    entry.duration ? entry.duration : null,
+    entry.subtitle ? entry.subtitle : null,
+    entry.sourceLabel ? entry.sourceLabel : null,
+  ];
+
+  return compactLines(segments).join(' | ');
 }
 
 function formatEnabled(value: boolean) {

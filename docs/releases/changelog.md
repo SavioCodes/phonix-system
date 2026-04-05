@@ -7,7 +7,10 @@
 - A identidade do bot dentro do Discord deixou de depender de emoji como linguagem principal: `theme.ts` agora centraliza assets oficiais do PHONIX para author/footer/media branding e reforca consistencia entre success, info, warning e error.
 - O `play` em slash parou de publicar um painel temporario de busca; ele agora usa o estado nativo de defer do Discord e fecha a resposta final em `Components V2`, o que evita mistura errada entre payload classico e V2.
 - `queue` e `nowplaying` ganharam hierarquia visual mais forte e mais limpa, com artwork principal, blocos operacionais curtos, contexto de sessao, recovery, source e proximo passo no mesmo painel.
+- `recover` tambem saiu do notice generico e virou um painel proprio de recovery, com contagem de restauradas/puladas, configuracao reaplicada, session health e destaque visual da faixa restaurada quando o snapshot salvo ainda tinha metadata suficiente.
+- `favorite list`, `playlist list` e `history` passaram a usar paineis de colecao em `Components V2`, com destaque visual do item principal quando existe artwork salvo e leitura mais limpa do que a antiga lista seca em notice.
 - `config view` e `doctor` passaram a se comportar como paineis operacionais premium em vez de dumps lineares de embed, mantendo leitura escaneavel em desktop e mobile.
+- O runbook de verificacao da `v2.2.0` foi aprofundado para incluir leitura visual de `recover`, library surfaces e checagem de densidade dos paineis em desktop/mobile, sem fingir que essa rodada manual ja foi concluida.
 - A documentacao foi alinhada para a nova linha `v2.2.0`, registrando a adocao seletiva de `Components V2`, o que ficou classico por escolha tecnica e as restricoes oficiais do Discord que dirigiram essa decisao.
 - A documentacao foi reorganizada por responsabilidade em `docs/architecture`, `docs/operations`, `docs/verification`, `docs/releases` e `docs/governance`, sem perder o conteudo historico dos runbooks e da arquitetura.
 - O repositorio ganhou padroes publicos reais em `.github/`, com CI reforcado, issue templates, PR template e `CODEOWNERS`.

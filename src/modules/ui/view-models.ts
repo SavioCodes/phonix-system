@@ -40,6 +40,42 @@ export interface TrackNoticeView {
   hint?: string | null;
 }
 
+export interface RecoverView {
+  kind: 'recover';
+  variant: 'success' | 'warning';
+  title: string;
+  description: string;
+  track: TrackCardView | null;
+  summaryLines: string[];
+  settingsLines: string[];
+  sessionLines: string[];
+  hint: string | null;
+}
+
+export interface CollectionEntryView {
+  position: number | null;
+  title: string;
+  subtitle: string | null;
+  duration: string | null;
+  sourceLabel: string | null;
+  url: string | null;
+}
+
+export interface CollectionView {
+  kind: 'collection';
+  title: string;
+  description: string;
+  collectionTitle: string;
+  leadTrack: TrackCardView | null;
+  entries: CollectionEntryView[];
+  hiddenEntryCount: number;
+  summaryTitle: string;
+  summaryLines: string[];
+  actionTitle: string;
+  actionLines: string[];
+  hint: string | null;
+}
+
 export type PlayMode = 'queue' | 'next' | 'replace';
 export type PlaySource = 'auto' | 'youtube' | 'spotify';
 export type PlaySourceLabel = 'Auto' | 'YouTube' | 'Spotify';
@@ -117,7 +153,14 @@ export interface NowPlayingView {
   session: SessionStatusView;
 }
 
-export type CommandView = NoticeView | TrackNoticeView | PlayResultView | QueueView | NowPlayingView;
+export type CommandView =
+  | NoticeView
+  | TrackNoticeView
+  | RecoverView
+  | CollectionView
+  | PlayResultView
+  | QueueView
+  | NowPlayingView;
 
 export interface GuildSettingsView {
   prefix: string;

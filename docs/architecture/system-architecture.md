@@ -106,6 +106,7 @@ assets/
 - Mantem favoritos, playlists, historico, configuracoes por guild e sessoes persistidas de playback.
 - `use-cases/libraryUseCases.ts` concentra o fluxo de favoritos, playlists e historico em contratos simples para a UI.
 - No endurecimento mais recente da linha `v2.1.0`, a biblioteca passou a entregar mais contexto acionavel: favoritos, playlists e historico agora devolvem listas e notices com reutilizacao mais clara, sem inventar novos comandos nem nova superficie.
+- No passe seguinte ainda dentro da linha `v2.2.0`, favoritos, playlists e historico ganharam uma superficie de colecao dedicada: `favorite list`, `playlist list` e `history` agora podem subir como paineis `Components V2` com destaque de media quando houver artwork salvo, sem reescrever os fluxos compactos de `add/remove/play`.
 
 ### `src/modules/music`
 
@@ -133,6 +134,7 @@ assets/
 - O ciclo de sessao ficou mais coerente para usuario final: `play` e `recover` conectam quando necessario, `stop` encerra e desconecta, e o autoplay persistido pertence a `config autoplay`.
 - Na linha `v2.x`, `PlaybackSessionManager` ganhou o caminho `recoverForDashboard()` para manter o Admin Center no mesmo trilho operacional do bot, inclusive na telemetria.
 - Na `v2.1.0`, `PlaybackSessionManager` passa a emitir uma leitura estruturada de `session health`, incluindo sessao ativa, pendente, parcial, bloqueada ou quebrada; `MusicService.recoverPlaybackSession()` tambem devolve um resultado mais rico sobre o que realmente foi restaurado.
+- Na mesma linha visual de `v2.2.0`, `recover` deixa de ser apenas um notice estruturado e passa a usar um painel dedicado de recovery, com contagem de restauradas/puladas, configuracao reaplicada, saude da sessao e destaque visual da faixa recuperada quando esse metadata estiver disponivel.
 
 ### `src/modules/ui`
 
@@ -145,6 +147,7 @@ assets/
 - Ainda dentro dessa linha, `TrackNoticeView` passou a aceitar campos contextuais e hint de proximo passo, o que permitiu a favoritos e playlists deixar de responder apenas com um card seco de faixa.
 - O passe mais recente dessa mesma linha fortaleceu o contrato compartilhado de midia: `trackCards.ts`, `view-models.ts` e `embeds.ts` agora reaproveitam artwork, link e origem da faixa para `play`, `queue` e `nowplaying`, sem abrir um segundo sistema de apresentacao paralelo ao runtime.
 - Na `v2.2.0`, a superficie Discord entra em um design system hibrido: `components-v2.ts` concentra paineis densos com `Container`, `Section`, `TextDisplay`, `MediaGallery` e `Separator` para `play`, `queue`, `nowplaying`, `config view` e `doctor`, enquanto `help`, notices compactos e fluxos transacionais curtos continuam em embeds/classic action rows por ergonomia e manutencao.
+- No passe seguinte ainda dentro da mesma linha, `components-v2.ts` tambem passa a sustentar `recover` e as colecoes principais da biblioteca (`favorite list`, `playlist list`, `history`), preservando os fluxos curtos de confirmacao no trilho classico e evitando um segundo sistema visual paralelo.
 - A mesma linha tambem troca a dependencia de emoji como linguagem principal por branding de asset real do PHONIX em `theme.ts`, permitindo author/footer/media icons consistentes sem criar uma segunda arquitetura de UI.
 - `src/scripts/verify-playback.ts` e `docs/verification/playback-verification.md` formam a camada operacional de verificacao A/B, unindo checks automatizados locais com roteiro manual de bitrate/perfil no Discord.
 - `src/scripts/verify-dashboard.ts` e `docs/verification/admin-center-verification.md` formam a camada operacional do painel web, separando verificacao automatica local de validacao manual do OAuth.

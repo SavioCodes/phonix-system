@@ -3,7 +3,11 @@ import type { GuildMember, User } from 'discord.js';
 import { PreconditionCommandError, ValidationCommandError } from '../../commands/errors.js';
 import { ensureAudioPlaybackAvailable } from '../../commands/audioPlayback.js';
 import type { OperationalTelemetryService } from '../../diagnostics/services/operationalTelemetryService.js';
-import type { PlaybackSessionDiagnostics, PlaybackSessionManager } from '../playbackSessionManager.js';
+import type {
+  PlaybackRecoveryResult,
+  PlaybackSessionDiagnostics,
+  PlaybackSessionManager,
+} from '../playbackSessionManager.js';
 import type { FfmpegStatus } from '../ffmpeg.js';
 import { inferTrackPlaybackRoute, MusicService, type QueueMetadata } from '../musicService.js';
 import type { PlaybackActionResult } from './contracts.js';
@@ -13,10 +17,11 @@ import type {
   PlayResultView,
   QueueEntryView,
   QueueView,
+  RecoverView,
   SessionStatusView,
   TrackCardView,
 } from '../../ui/view-models.js';
-import { toTrackCardView } from '../../ui/trackCards.js';
+import { formatSourceLabel, toTrackCardView } from '../../ui/trackCards.js';
 
 type LoopMode = 'off' | 'track' | 'queue';
 
@@ -93,50 +98,7 @@ export function createPlaybackUseCases(deps: PlaybackUseCaseDeps) {
         throw mapRecoverError(error);
       }
 
-      return notice(
-        result.sessionHealth === 'partial' ? 'warning' : 'success',
-        result.sessionHealth === 'partial' ? 'PHONIX | Sessao restaurada com ressalvas' : 'PHONIX | Sessao recuperada',
-        result.sessionHealth === 'partial'
-          ? `A sessao voltou para o seu canal, mas apenas **${result.recoveredTrackCount}** de **${result.requestedTrackCount}** faixa(s) continuaram tocaveis.`
-          : `A fila salva voltou para o seu canal com **${result.recoveredTrackCount}** faixa(s) restaurada(s).`,
-        {
-          fields: [
-            {
-              name: 'Resumo do recovery',
-              value: [
-                `Faixas salvas: **${result.requestedTrackCount}**`,
-                `Restauradas: **${result.recoveredTrackCount}**`,
-                `Puladas: **${result.skippedTrackCount}**`,
-                `Faixa atual salva: **${formatEnabled(result.restoredCurrentTrack)}**`,
-                `Tentativas: **${result.attemptCount}**`,
-              ].join('\n'),
-              inline: false,
-            },
-            {
-              name: 'Configuracao reaplicada',
-              value: [
-                `Volume: **${result.volume}%**`,
-                `Loop: **${resolveLoopModeLabel(result.repeatMode)}**`,
-                `Autoplay: **${formatEnabled(result.autoplayEnabled)}**`,
-              ].join('\n'),
-              inline: true,
-            },
-            {
-              name: 'Saude da sessao',
-              value: [
-                `Status: **${formatSessionHealthLabel(result.sessionHealth)}**`,
-                `Intervencao manual: **${formatEnabled(result.manualInterventionRequired)}**`,
-                result.healthDetail,
-              ].join('\n'),
-              inline: true,
-            },
-          ],
-          hint:
-            result.sessionHealth === 'partial'
-              ? 'Use `/queue` e `/nowplaying` para revisar o que voltou. Se a ordem recuperada nao estiver suficiente, monte uma nova fila e deixe o PHONIX gravar uma sessao mais saudavel.'
-              : 'Use `/queue` para revisar a fila restaurada ou `/nowplaying` para conferir o status atual da sessao.',
-        },
-      );
+      return toRecoverView(result);
     },
 
     async pause(input: PlaybackBaseInput): Promise<PlaybackActionResult> {
@@ -469,7 +431,7 @@ function toPlayResultView(result: Awaited<ReturnType<MusicService['play']>>): Pl
     title: buildPlayTitle(result),
     description,
     track: toTrackCardView(result.track, {
-      sourceLabel: formatTrackSourceLabel(result.provider, result.routeKind),
+      sourceLabel: formatSourceLabel(result.provider, { routeKind: result.routeKind }),
     }),
     resultType: result.resultType,
     mode: result.mode,
@@ -625,7 +587,7 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
       : 'A fila existe, mas nenhuma faixa entrou no ar ainda. Use `/play` ou `!tocar` para iniciar a sessao.',
     currentTrack: current
       ? toTrackCardView(current, {
-          sourceLabel: currentRoute ? formatTrackSourceLabel(currentRoute.provider, currentRoute.routeKind) : null,
+          sourceLabel: currentRoute ? formatSourceLabel(currentRoute.provider, { routeKind: currentRoute.routeKind }) : null,
         })
       : null,
     currentProgressBar: current ? (queue.node.createProgressBar?.() ?? 'Progresso indisponivel.') : null,
@@ -654,7 +616,7 @@ function toNowPlayingView(queue: GuildQueue<QueueMetadata>, diagnostics: Playbac
       : 'A fila ainda nao iniciou nenhuma faixa. Use `/play` ou `!tocar` para comecar.',
     track: track
       ? toTrackCardView(track, {
-          sourceLabel: trackRoute ? formatTrackSourceLabel(trackRoute.provider, trackRoute.routeKind) : null,
+          sourceLabel: trackRoute ? formatSourceLabel(trackRoute.provider, { routeKind: trackRoute.routeKind }) : null,
         })
       : null,
     progressBar: track ? (queue.node.createProgressBar?.() ?? 'Progresso indisponivel.') : null,
@@ -728,25 +690,6 @@ function buildPlayEntryView(result: Awaited<ReturnType<MusicService['play']>>) {
       ? 'O YouTube foi degradado para compatibility nesta tentativa para estabilizar a reproducao.'
       : null,
   };
-}
-
-function formatTrackSourceLabel(
-  provider: string,
-  routeKind: 'native' | 'bridge' | 'unknown',
-) {
-  if (provider === 'youtube') {
-    return 'YouTube';
-  }
-
-  if (provider === 'spotify') {
-    return routeKind === 'bridge' ? 'Spotify (bridge)' : 'Spotify';
-  }
-
-  if (provider === 'soundcloud') {
-    return routeKind === 'bridge' ? 'SoundCloud (fallback interno)' : 'SoundCloud';
-  }
-
-  return null;
 }
 
 function resolveLoopModeLabel(repeatMode: QueueRepeatMode) {
@@ -823,6 +766,48 @@ function formatRecoveryStatusLabel(status: PlaybackSessionDiagnostics['lastRecov
 
 function formatEnabled(value: boolean) {
   return value ? 'sim' : 'nao';
+}
+
+function toRecoverView(result: PlaybackRecoveryResult): RecoverView {
+  const highlightedTrack = result.session?.currentTrack ?? result.session?.items.at(0)?.track ?? null;
+
+  return {
+    kind: 'recover',
+    variant: result.sessionHealth === 'partial' ? 'warning' : 'success',
+    title: result.sessionHealth === 'partial' ? 'PHONIX | Sessao restaurada com ressalvas' : 'PHONIX | Sessao recuperada',
+    description:
+      result.sessionHealth === 'partial'
+        ? `A sessao voltou para o seu canal, mas apenas **${result.recoveredTrackCount}** de **${result.requestedTrackCount}** faixa(s) continuaram tocaveis.`
+        : `A fila salva voltou para o seu canal com **${result.recoveredTrackCount}** faixa(s) restaurada(s).`,
+    track: highlightedTrack
+      ? toTrackCardView(highlightedTrack, {
+          sourceLabel: formatSourceLabel(highlightedTrack.source),
+        })
+      : null,
+    summaryLines: [
+      `Faixas salvas: **${result.requestedTrackCount}**`,
+      `Restauradas: **${result.recoveredTrackCount}**`,
+      `Puladas: **${result.skippedTrackCount}**`,
+      `Faixa atual salva: **${formatEnabled(result.restoredCurrentTrack)}**`,
+      `Fila reaproveitada agora: **${result.restoredUpcomingTrackCount}** faixa(s)`,
+      `Tentativas nesta rodada: **${result.attemptCount}**`,
+    ],
+    settingsLines: [
+      `Volume reaplicado: **${result.volume}%**`,
+      `Loop reaplicado: **${resolveLoopModeLabel(result.repeatMode)}**`,
+      `Autoplay reaplicado: **${formatEnabled(result.autoplayEnabled)}**`,
+      `Recovery automatico: **${formatEnabled(result.autoRecovered)}**`,
+    ],
+    sessionLines: [
+      `Saude: **${formatSessionHealthLabel(result.sessionHealth)}**`,
+      `Intervencao manual: **${formatEnabled(result.manualInterventionRequired)}**`,
+      result.healthDetail,
+    ],
+    hint:
+      result.sessionHealth === 'partial'
+        ? 'Use `/queue` e `/nowplaying` para revisar o que voltou. Se a ordem recuperada nao estiver suficiente, monte uma nova fila e deixe o PHONIX gravar uma sessao mais saudavel.'
+        : 'Use `/queue` para revisar a fila restaurada, `/nowplaying` para focar na faixa atual ou `/doctor` se quiser revisar a saude da sessao.',
+  };
 }
 
 function mapRecoverError(error: unknown) {

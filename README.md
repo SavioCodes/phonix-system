@@ -38,6 +38,7 @@ Current Admin Center areas:
 The current release line focuses on premium Discord presentation without dropping the operational clarity added in `Smart Session`:
 
 - selective `Components V2` adoption for `play`, `queue`, `nowplaying`, `config view` and `doctor`
+- premium recovery and library list surfaces for `recover`, `favorite list`, `playlist list` and `history`
 - stronger hierarchy for operational panels, with denser blocks that still read well on desktop and mobile
 - PHONIX branding through consistent author/footer/media assets instead of emoji-heavy language
 - a hybrid message strategy: interactive help and short transactional notices stay on classic embeds/action rows where that remains clearer and safer
@@ -121,12 +122,14 @@ Detailed architecture:
 - startup recovery and manual `recover`
 - session health states surfaced in `doctor`, `queue`, `nowplaying` and recovery feedback
 - persisted playback config context such as volume, loop and autoplay when the saved session is reusable
+- dedicated recovery panel with restored/skipped counts, reapplied config and session health summary
 
 ### Library
 
 - `/favorite add`, `/favorite play`, `/favorite list`, `/favorite remove`
 - `/playlist create`, `/playlist add`, `/playlist play`, `/playlist list`, `/playlist remove`, `/playlist delete`
 - `/history`
+- visual library panels for favorites, playlists and recent history, with artwork/source metadata when the stored item has usable media context
 
 ### Admin and diagnostics
 
@@ -178,7 +181,7 @@ Important notes:
 
 PHONIX now uses a hybrid message system on Discord:
 
-- `Components V2`: `play`, `queue`, `nowplaying`, `config view`, `doctor`
+- `Components V2`: `play`, `queue`, `nowplaying`, `recover`, `favorite list`, `playlist list`, `history`, `config view`, `doctor`
 - classic embeds + action rows: `help`, short notices, library confirmations and compact transactional flows
 
 This split is deliberate. Official Discord guidance for `Components V2` requires `IS_COMPONENTS_V2` and does not allow mixing those payloads with classic `content`/`embeds` in the same message, so PHONIX only uses V2 where layout density and scanability clearly improve the product.

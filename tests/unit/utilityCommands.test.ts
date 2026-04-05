@@ -1,19 +1,36 @@
+import { MessageFlags } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { utilityCommands } from '../../src/modules/commands/utilityCommands.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
 import { createCommandContext } from '../support/commandContext.js';
-import { renderEmbed } from '../support/discordPayload.js';
+import { renderDiscordValue, renderEmbed } from '../support/discordPayload.js';
 
 const historyCommand = utilityCommands.find((command) => command.name === 'history');
 const helpCommand = utilityCommands.find((command) => command.name === 'help');
 
 describe('utility commands', () => {
-  it('history delegates to the library use case and returns the structured notice payload', async () => {
+  it('history delegates to the library use case and returns the structured collection panel', async () => {
     const history = vi.fn().mockResolvedValue({
-      kind: 'notice',
-      variant: 'info',
+      kind: 'collection',
       title: 'PHONIX | Historico recente',
       description: 'Estas sao as ultimas faixas registradas.',
+      collectionTitle: 'Ultimas reproducoes',
+      leadTrack: null,
+      entries: [
+        {
+          position: 1,
+          title: 'Night Drive',
+          subtitle: 'Nova',
+          duration: '4:02',
+          sourceLabel: 'YouTube',
+          url: 'https://example.com/track-1',
+        },
+      ],
+      hiddenEntryCount: 0,
+      summaryTitle: 'Memoria recente',
+      summaryLines: ['Faixas registradas: **1**'],
+      actionTitle: 'Como reaproveitar',
+      actionLines: ['Use /play para repetir uma busca.'],
       hint: 'Use /play para repetir uma busca.',
     });
 
@@ -32,7 +49,9 @@ describe('utility commands', () => {
     );
 
     expect(history).toHaveBeenCalledWith('user-1');
-    expect(renderEmbed(payload?.embeds?.[0])?.title).toBe('PHONIX | Historico recente');
+    expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
+    const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload?.components?.[0] as never);
+    expect(rendered?.components?.some((component) => component.content?.includes('PHONIX | Historico recente'))).toBe(true);
   });
 
   it('help delegates to the admin help use case and preserves interactive navigation components', async () => {

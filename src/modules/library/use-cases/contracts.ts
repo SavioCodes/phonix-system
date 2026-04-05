@@ -1,3 +1,3 @@
-import type { NoticeView, TrackNoticeView } from '../../ui/view-models.js';
+import type { CollectionView, NoticeView, TrackNoticeView } from '../../ui/view-models.js';
 
-export type LibraryMutationResult = NoticeView | TrackNoticeView;
+export type LibraryMutationResult = NoticeView | TrackNoticeView | CollectionView;
