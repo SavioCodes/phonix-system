@@ -71,3 +71,16 @@ Update operational runbooks whenever behavior changes in:
 - recovery / session health
 - owner control
 - Admin Center authentication or authorization
+
+## Repository sync rule
+
+Every meaningful bot update should also update the public repository surface before the work is treated as complete.
+
+That includes, when applicable:
+
+- impacted product and operational documentation
+- repository metadata or public-facing guidance
+- changelog and tracker entries
+- GitHub commit, push, and release/tag state for the current delivery line
+
+In short: updating the bot without updating the docs and repository posture is considered incomplete work.

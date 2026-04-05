@@ -6,6 +6,7 @@
 - O repositorio ganhou padroes publicos reais em `.github/`, com CI reforcado, issue templates, PR template e `CODEOWNERS`.
 - O projeto ganhou `SECURITY.md`, `.editorconfig` e um `.gitignore` mais seguro para exposicao publica, reduzindo risco de ruido local e vazamento acidental de artefatos de ambiente.
 - `README.md`, metadados do `package.json`, LICENSE, CONTRIBUTING e a politica de releases foram alinhados para exposicao publica do projeto sem inventar comportamento novo de produto.
+- A governanca do repositorio agora deixa explicito que atualizar o bot sem sincronizar documentacao e estado publico do repositorio e trabalho incompleto.
 
 ## `v2.1.0` - Smart Session
 

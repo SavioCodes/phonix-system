@@ -51,6 +51,7 @@
 - A suite tambem ganhou endurecimento concreto: `Vitest` agora exige assertions por teste, e comandos/use cases antes pouco protegidos (`help`, `history`, `doctor`, `stop`, `nowplaying`, `setDefaultVolume`) passaram a ter cobertura direta.
 - O painel agora persiste tokens OAuth cifrados em SQLite, poda sessoes expiradas no startup e invalida a sessao quando o refresh OAuth falha.
 - A postura publica do repositorio tambem foi endurecida sem inventar release nova: a documentacao saiu do layout achatado em `docs/`, ganhou mapa por responsabilidade, politica de release, perfil de repositorio, templates do GitHub e CI com smoke tests.
+- A regra operacional do projeto tambem ficou explicita: toda mudanca relevante no bot precisa sincronizar documentacao e repositorio antes de ser tratada como concluida.
 - O ambiente local ja foi validado com `fidelity` efetivo, `youtubei` ativo e client `WEB`, e o runtime agora tambem consegue degradar para `compatibility` de forma auditavel quando a abertura real do stream falhar.
 - O gap remanescente desta frente e manual e operacional: a matriz A/B em canais de `64/128/256/384 kbps` ainda precisa ser preenchida no Discord real para concluir a leitura auditiva e de estabilidade.
 - `docs/verification/playback-verification.md` virou o runbook oficial da fase e `docs/verification/playback-verification-results.md` passou a registrar o estado real do ambiente e a matriz final.

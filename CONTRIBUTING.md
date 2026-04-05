@@ -8,6 +8,7 @@ PHONIX is maintained as a production-oriented Discord music bot and Admin Center
 - Keep changes consistent with the current architecture in `src/app`, `src/core` and `src/modules`.
 - Update impacted documentation when runtime behavior, operational workflows or public commands change.
 - Treat `README.md`, `docs/architecture/system-architecture.md`, `docs/releases/project-tracker.md` and `docs/releases/changelog.md` as part of the deliverable.
+- Treat repository hygiene as part of the deliverable too: when the bot changes meaningfully, sync the docs and the GitHub repository state before considering the work finished.
 
 ## Development workflow
 
@@ -33,6 +34,15 @@ When you touch verification flows, prefer the dedicated scripts as well:
 npm run verify:playback
 npm run verify:dashboard
 ```
+
+## Definition of done
+
+Changes are only considered complete when all of the following are true:
+
+- code is updated
+- impacted docs are updated
+- release-facing files stay aligned
+- the repository state is synchronized when the change is intended to ship publicly
 
 ## Documentation map
 
