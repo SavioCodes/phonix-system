@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: PHONIX documentation map
+    url: https://github.com/SavioCodes/phonix-system/tree/main/docs
+    about: Start with the architecture, operations and verification docs before opening a report.

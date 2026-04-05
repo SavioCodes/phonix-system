@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a real runtime, command, playback, recovery, dashboard or documentation defect.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Playback
+        - Recovery / Smart Session
+        - Commands / UX
+        - Library
+        - Doctor / Diagnostics
+        - Owner Control
+        - Admin Center
+        - Documentation
+        - CI / Repository
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened
+      description: Describe the observed behavior, not the expected one.
+      placeholder: The bot stayed online, but /recover reported success without restoring the saved queue...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the bot with...
+        2. Run...
+        3. Restart...
+        4. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, doctor output, screenshots or other evidence
+      description: Redact tokens, secrets, cookies and private identifiers before posting.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        Node.js:
+        OS:
+        PHONIX version:
+        Playback profile:
+        Admin Center enabled:

@@ -1,0 +1,13 @@
+<svg width="1600" height="500" viewBox="0 0 1600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="500" fill="#050D1F"/>
+  <path d="M0 388C278 300 356 302 620 388C904 480 1046 474 1600 270V500H0V388Z" fill="#0A1E3D"/>
+  <circle cx="1336" cy="126" r="88" fill="#1A6EF5" fill-opacity="0.18"/>
+  <circle cx="1380" cy="102" r="42" fill="#00C8E0" fill-opacity="0.35"/>
+  <path d="M176 370L264 146H332L254 292H364L286 370H176Z" fill="#00C8E0"/>
+  <path d="M340 370L428 146H496L418 292H528L450 370H340Z" fill="#1A6EF5"/>
+  <text x="612" y="232" fill="#E8F4FF" font-size="126" font-family="Segoe UI, Arial, sans-serif" font-weight="800" letter-spacing="10">PHONIX</text>
+  <text x="618" y="298" fill="#00C8E0" font-size="36" font-family="Consolas, monospace" letter-spacing="6">MUSIC BOT FOR DISCORD</text>
+  <rect x="618" y="336" width="420" height="10" rx="5" fill="#1A6EF5"/>
+  <rect x="1060" y="336" width="140" height="10" rx="5" fill="#00C8E0"/>
+</svg>
+

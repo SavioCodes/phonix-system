@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a real product improvement grounded in PHONIX's current behavior.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Playback
+        - Recovery / Smart Session
+        - Library
+        - Commands / UX
+        - Doctor / Diagnostics
+        - Owner Control
+        - Admin Center
+        - Documentation
+        - CI / Repository
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should PHONIX solve better
+      description: Describe the operational or UX gap first.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Keep it consistent with the current architecture when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: What should stay out of scope
+      description: Prevent the request from growing into an unrelated redesign.

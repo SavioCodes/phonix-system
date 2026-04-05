@@ -1,0 +1,21 @@
+{
+  "name": "@snazzah/davey-wasm32-wasi",
+  "version": "0.1.11",
+  "main": "davey.wasi.cjs",
+  "files": [
+    "davey.wasm32-wasi.wasm",
+    "davey.wasi.cjs",
+    "davey.wasi-browser.js",
+    "wasi-worker.mjs",
+    "wasi-worker-browser.mjs"
+  ],
+  "description": "Vendored WASI fallback for @snazzah/davey on hosts where native bindings are blocked.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browser": "davey.wasi-browser.js",
+  "dependencies": {
+    "@napi-rs/wasm-runtime": "^1.1.2"
+  }
+}

@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model GuildSettings {
+  guildId            String   @id
+  prefix             String   @default("!")
+  defaultVolume      Int      @default(70)
+  autoplayEnabled    Boolean  @default(false)
+  resumeQueueEnabled Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model GuildPlaybackSession {
+  guildId             String                     @id
+  voiceChannelId      String
+  textChannelId       String
+  currentTrackPayload String?
+  volume              Int                        @default(70)
+  repeatMode          Int                        @default(0)
+  autoplayEnabled     Boolean                    @default(false)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  items               GuildPlaybackSessionItem[]
+
+  @@index([updatedAt])
+}
+
+model GuildPlaybackSessionItem {
+  id             String               @id @default(cuid())
+  sessionGuildId String
+  position       Int
+  trackPayload   String
+  createdAt      DateTime             @default(now())
+  session        GuildPlaybackSession @relation(fields: [sessionGuildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([sessionGuildId, position])
+  @@index([sessionGuildId, createdAt])
+}
+
+model OperationalIncident {
+  id            String   @id @default(cuid())
+  guildId       String?
+  category      String
+  command       String?
+  source        String?
+  userId        String?
+  channelId     String?
+  textChannelId String?
+  type          String
+  stage         String?
+  code          String?
+  message       String
+  provider      String?
+  pipeline      String?
+  recoverable   Boolean?
+  terminal      Boolean?
+  trigger       String?
+  attempt       Int?
+  auto          Boolean?
+  durationMs    Int?
+  commandStatus String?
+  errorKind     String?
+  occurredAt    DateTime @default(now())
+
+  @@index([guildId, occurredAt])
+  @@index([category, occurredAt])
+  @@index([code, occurredAt])
+}
+
+model UserFavorite {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  url          String
+  author       String
+  thumbnail    String
+  duration     String
+  source       String
+  encodedTrack String
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+}
+
+model Playlist {
+  id        String         @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  items     PlaylistItem[]
+
+  @@unique([userId, name])
+  @@index([userId, updatedAt])
+}
+
+model PlaylistItem {
+  id           String   @id @default(cuid())
+  playlistId   String
+  position     Int
+  title        String
+  url          String
+  author       String
+  thumbnail    String
+  duration     String
+  source       String
+  encodedTrack String
+  createdAt    DateTime @default(now())
+  playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, position])
+  @@index([playlistId, createdAt])
+}
+
+model TrackHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  guildId   String
+  title     String
+  url       String
+  author    String
+  thumbnail String
+  duration  String
+  source    String
+  playedAt  DateTime @default(now())
+
+  @@index([userId, playedAt])
+  @@index([guildId, playedAt])
+}
+
+model DashboardSession {
+  id                        String   @id @default(cuid())
+  discordUserId             String
+  username                  String
+  avatar                    String?
+  authorizedGuildIdsJson    String
+  csrfTokenHash             String
+  oauthAccessTokenCiphertext String?
+  oauthRefreshTokenCiphertext String?
+  oauthTokenType            String?
+  oauthScope                String?
+  oauthExpiresAt            DateTime?
+  lastAuthorizedSyncAt      DateTime?
+  expiresAt                 DateTime
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([discordUserId, expiresAt])
+  @@index([expiresAt])
+}
