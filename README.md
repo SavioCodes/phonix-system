@@ -2,7 +2,7 @@
 
 ![PHONIX Banner](assets/banner.png)
 
-PHONIX `v2.1.0` is a production-oriented Discord music bot built with TypeScript + Node.js. It is designed around stable playback, guild-aware recovery, operational diagnostics, guided command UX, and an opt-in Admin Center that runs in the same runtime as the bot.
+PHONIX `v2.2.0` is a production-oriented Discord music bot built with TypeScript + Node.js. It is designed around stable playback, guild-aware recovery, operational diagnostics, guided command UX, and an opt-in Admin Center that runs in the same runtime as the bot.
 
 Visual identity: `Deep Space / Navy Core / Electric Blue / Cyan Signal / Ice White`
 
@@ -33,10 +33,14 @@ Current Admin Center areas:
 - `Diagnostics`
 - `Operations`
 
-## Current release: `v2.1.0 - Smart Session`
+## Current release: `v2.2.0 - Signal Surfaces`
 
-The current release line focuses on session continuity and operational clarity:
+The current release line focuses on premium Discord presentation without dropping the operational clarity added in `Smart Session`:
 
+- selective `Components V2` adoption for `play`, `queue`, `nowplaying`, `config view` and `doctor`
+- stronger hierarchy for operational panels, with denser blocks that still read well on desktop and mobile
+- PHONIX branding through consistent author/footer/media assets instead of emoji-heavy language
+- a hybrid message strategy: interactive help and short transactional notices stay on classic embeds/action rows where that remains clearer and safer
 - explicit `session health` by guild
 - stronger `recover` feedback
 - `queue` and `nowplaying` as session panels instead of plain text dumps
@@ -44,6 +48,9 @@ The current release line focuses on session continuity and operational clarity:
 - clearer `doctor`, `config`, `help`, library notices and owner operations
 - controlled errors now distinguish better between stream lookup failures and unusable saved recovery sessions
 - real `fidelity/youtubei` stream-open failures can trigger an automatic one-shot runtime downgrade to `compatibility/youtube-dl`, with the downgraded state surfaced in diagnostics
+- `play` now reports the operational entry path more clearly, including whether PHONIX had to prepare the voice connection, whether playback actually started before the reply, and whether a runtime fallback was needed
+- `nowplaying`, `queue` and started-play results now use stronger media presentation with artwork, source labeling and direct track links when metadata is available
+- `doctor` and `config view` now render as premium operational panels instead of embed-shaped dumps
 
 ## Architecture at a glance
 
@@ -88,7 +95,7 @@ High-level responsibilities:
 - `src/modules/library`: favorites, playlists, history, guild settings and persisted playback sessions
 - `src/modules/diagnostics`: `doctor`, operational telemetry, incident history and owner control services
 - `src/modules/dashboard`: Fastify server, OAuth, dashboard sessions and Admin Center use cases
-- `src/modules/ui`: themes, embeds, command guides and view models
+- `src/modules/ui`: themes, embeds, command guides, view models and Components V2 panels
 - `src/scripts`: operational scripts such as slash deployment and verification flows
 
 Detailed architecture:
@@ -105,6 +112,8 @@ Detailed architecture:
 - `/pause`, `/resume`, `/skip`, `/stop`, `/volume`, `/queue`, `/nowplaying`
 - `/recover` and `!retomar`
 - guided errors for voice permissions, unsupported URLs, invalid sources and recovery conflicts
+- richer `play` feedback for `started now` versus `queued`, with operational context about connection/session startup
+- artwork-backed `nowplaying` and queue context when track metadata includes a usable thumbnail or cover
 
 ### Smart Session and recovery
 
@@ -124,6 +133,7 @@ Detailed architecture:
 - `/config view`, `/config prefix`, `/config volume`, `/config autoplay`, `/config resumequeue`
 - `/doctor`
 - guided administrative feedback for prefix, volume, recovery readiness and guild state
+- premium `Components V2` panels for `config view` and `doctor`
 
 ### Owner control
 
@@ -159,10 +169,19 @@ Important notes:
 
 - `fidelity` falls back safely when the cookie or runtime requirements are not met
 - when `fidelity` uses the `WEB` client, PHONIX also enables the extractor's `PoToken` path automatically
-- PHONIX runs a short startup probe for `fidelity/youtubei`; if the native stream still fails, the runtime is downgraded to `compatibility/youtube-dl` before the first real command
+- PHONIX runs a short startup probe for `fidelity/youtubei`; if the native stream still fails, the runtime quarantines that path and is downgraded to `compatibility/youtube-dl` before the first real command
 - if a real `fidelity/youtubei` stream open fails at runtime, PHONIX can downgrade the running YouTube route to `compatibility/youtube-dl` and retry once automatically
 - `YOUTUBE_HIGH_WATER_MARK` helps stream smoothness and tolerance, not guaranteed fidelity
 - `doctor` and verification scripts show requested profile, effective profile, pipeline, client and runtime downgrade reason when it exists
+
+## Discord message surface
+
+PHONIX now uses a hybrid message system on Discord:
+
+- `Components V2`: `play`, `queue`, `nowplaying`, `config view`, `doctor`
+- classic embeds + action rows: `help`, short notices, library confirmations and compact transactional flows
+
+This split is deliberate. Official Discord guidance for `Components V2` requires `IS_COMPONENTS_V2` and does not allow mixing those payloads with classic `content`/`embeds` in the same message, so PHONIX only uses V2 where layout density and scanability clearly improve the product.
 
 ### Spotify
 

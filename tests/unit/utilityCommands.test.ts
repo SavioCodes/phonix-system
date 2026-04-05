@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { utilityCommands } from '../../src/modules/commands/utilityCommands.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
 import { createCommandContext } from '../support/commandContext.js';
+import { renderEmbed } from '../support/discordPayload.js';
 
 const historyCommand = utilityCommands.find((command) => command.name === 'history');
 const helpCommand = utilityCommands.find((command) => command.name === 'help');
@@ -31,7 +32,7 @@ describe('utility commands', () => {
     );
 
     expect(history).toHaveBeenCalledWith('user-1');
-    expect(payload?.embeds?.[0]?.data?.title).toBe('PHONIX | Historico recente');
+    expect(renderEmbed(payload?.embeds?.[0])?.title).toBe('PHONIX | Historico recente');
   });
 
   it('help delegates to the admin help use case and preserves interactive navigation components', async () => {
@@ -80,7 +81,7 @@ describe('utility commands', () => {
       userId: 'user-1',
       currentPage: 'home',
     });
-    expect(payload?.embeds?.[0]?.data?.title).toBe('PHONIX | Comece por aqui');
+    expect(renderEmbed(payload?.embeds?.[0])?.title).toBe('PHONIX | Comece por aqui');
     expect(payload?.components).toHaveLength(2);
   });
 });

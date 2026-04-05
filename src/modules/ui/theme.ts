@@ -18,5 +18,10 @@ export const theme = {
     alertCoral: '#FF5F7A',
     iceWhite: '#E8F4FF',
   },
+  assets: {
+    logoUrl: 'https://raw.githubusercontent.com/SavioCodes/phonix-system/main/assets/logo.png',
+    avatarUrl: 'https://raw.githubusercontent.com/SavioCodes/phonix-system/main/assets/avatar.png',
+    bannerUrl: 'https://raw.githubusercontent.com/SavioCodes/phonix-system/main/assets/banner.png',
+  },
   footerText: 'PHONIX | Deep Space Audio Core',
 };

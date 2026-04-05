@@ -6,6 +6,8 @@ export interface TrackCardView {
   author: string;
   duration: string;
   thumbnail: string;
+  url?: string | null;
+  sourceLabel?: string | null;
 }
 
 export interface QueueEntryView {
@@ -60,6 +62,12 @@ export interface PlayResultView {
   autoplayEnabled: boolean;
   sourceRouteKind?: 'native' | 'bridge' | 'unknown';
   sourceDetail?: string | null;
+  entry: {
+    connection: string;
+    session: string;
+    startup: string;
+    runtime: string | null;
+  };
   hint: string | null;
 }
 

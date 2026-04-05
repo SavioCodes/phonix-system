@@ -34,6 +34,7 @@
 - A revisao `v2.0.4` foca saneamento tecnico: menos utilitario morto, menos duplicacao em testes, verificacao operacional melhor posicionada e estrutura mais facil de navegar.
 - A revisao `v2.0.5` adiciona um eixo novo de operacao: owner access centralizado, DM automatica de online, namespace `/owner` e leitura dedicada da guild oficial.
 - A revisao `v2.1.0` fortalece a continuidade operacional por guild com `Smart Session`: recovery mais claro, session health estruturada, deteccao de sessao parcial/quebrada e melhor leitura em `recover`, `queue`, `nowplaying` e `doctor`.
+- A revisao `v2.2.0` abre uma linha nova de superficie Discord: paineis densos migraram seletivamente para `Components V2`, enquanto `help` e notices compactos continuam classicos para preservar ergonomia, compatibilidade e manutencao.
 - O passe visual mais recente da linha `v2.1.0` reforca a apresentacao dentro do Discord: notices com campos e hint contextual, `play` mais escaneavel, `queue` e `nowplaying` com cara de painel de sessao e `config`/`doctor` organizados por blocos de leitura rapida.
 - O hardening mais recente dentro da mesma linha fechou gaps de UX e dominio ainda reais: favoritos/playlists agora explicam origem do atalho e impacto na sessao, `config` passou a devolver validacoes de prefixo/volume com titulos claros e `help`/`admin` mostram melhor o estado atual da guild.
 - O passe seguinte ainda dentro da mesma linha aprofundou a clareza operacional: `loop` ficou mais legivel no slash e no prefixo, `history` e a biblioteca passaram a orientar melhor reuso real, e a ajuda passou a sugerir o atalho certo com base no estado atual da guild.
@@ -49,10 +50,14 @@
 - O endurecimento seguinte saiu da explicacao e entrou em mitigacao real: quando um stream falha de verdade em `fidelity/youtubei`, o runtime agora pode degradar a rota ativa para `compatibility/youtube-dl`, repetir a tentativa uma vez e deixar esse downgrade auditavel em `doctor`, dashboard e owner ops.
 - A rodada seguinte fechou o atrito do primeiro comando quebrado no ambiente real: pesquisa e probes locais confirmaram falha upstream de `decipher` no caminho nativo do `youtubei`, entao o runtime passou a habilitar `PoToken` em `fidelity/WEB` e executar um probe curto no startup; se ele falhar, o bot ja sobe em `compatibility/youtube-dl` sem esperar o primeiro `/play` quebrar.
 - A suite tambem ganhou endurecimento concreto: `Vitest` agora exige assertions por teste, e comandos/use cases antes pouco protegidos (`help`, `history`, `doctor`, `stop`, `nowplaying`, `setDefaultVolume`) passaram a ter cobertura direta.
+- O hardening mais recente desta mesma linha fechou dois bugs reais de runtime vistos em producao: expiracao de slash interaction nao derruba mais o processo com `Unknown interaction`, e o descarte de fila em falha/recovery ficou idempotente mesmo quando o `discord-player` ja removeu a queue antes do cleanup.
+- A mesma rodada tambem reduziu ruido operacional de recovery: eventos de runtime deixam de promover para `warn` o que ja e um abort esperado apos janela esgotada, preservando warning apenas para falhas realmente inesperadas do handler.
 - O painel agora persiste tokens OAuth cifrados em SQLite, poda sessoes expiradas no startup e invalida a sessao quando o refresh OAuth falha.
 - A postura publica do repositorio tambem foi endurecida sem inventar release nova: a documentacao saiu do layout achatado em `docs/`, ganhou mapa por responsabilidade, politica de release, perfil de repositorio, templates do GitHub e CI com smoke tests.
 - A regra operacional do projeto tambem ficou explicita: toda mudanca relevante no bot precisa sincronizar documentacao e repositorio antes de ser tratada como concluida.
 - O ambiente local ja foi validado com `fidelity` efetivo, `youtubei` ativo e client `WEB`, e o runtime agora tambem consegue degradar para `compatibility` de forma auditavel quando a abertura real do stream falhar.
+- O passe mais recente da linha `v2.1.0` tambem melhorou a UX perceptiva do Discord sem abrir uma nova superficie: o resultado do `play` agora diferencia melhor preparo de conexao, reaproveitamento da sessao e start real da faixa.
+- A mesma rodada fortaleceu a apresentacao visual da musica atual: `nowplaying`, `queue` e respostas de `play` agora reaproveitam thumbnail/capa, link da faixa e origem resumida quando esse metadata existe no runtime.
 - O gap remanescente desta frente e manual e operacional: a matriz A/B em canais de `64/128/256/384 kbps` ainda precisa ser preenchida no Discord real para concluir a leitura auditiva e de estabilidade.
 - `docs/verification/playback-verification.md` virou o runbook oficial da fase e `docs/verification/playback-verification-results.md` passou a registrar o estado real do ambiente e a matriz final.
 
@@ -69,6 +74,21 @@
 - [x] Adicionar `SECURITY.md`, `.editorconfig` e endurecer `.gitignore` para a exposicao publica
 - [x] Incluir `test:smoke` na pipeline de CI
 - [x] Criar o repositorio remoto `phonix-system` no GitHub e aplicar os topicos recomendados
+
+### `v2.2.0` - Signal Surfaces
+
+- [x] Confirmar a versao atual real em runtime, docs e release publica antes de abrir a nova linha
+- [x] Reanalisar docs oficiais do Discord, `discord.js` e `discord-player` antes de decidir a estrategia visual
+- [x] Introduzir um design system hibrido para mensagens do Discord, com assets de branding reais do PHONIX
+- [x] Adotar `Components V2` em `play`, `queue`, `nowplaying`, `config view` e `doctor`
+- [x] Manter `help`, notices compactos e fluxos de biblioteca em embeds/classic action rows por criterio de ergonomia e manutencao
+- [x] Remover a dependencia de emoji como linguagem visual principal na camada de superficie Discord
+- [x] Reorganizar a hierarquia visual de `queue`, `nowplaying`, `doctor` e `config`
+- [x] Mover o loading visual do slash `play` para o estado nativo de defer do Discord, preservando o payload final em `Components V2`
+- [x] Atualizar `README`, `ARCHITECTURE`, `PROJECT_TRACKER`, `CHANGELOG` e docs operacionais/verification impactadas
+- [x] Alinhar runtime e versao publica para `2.2.0`
+- [ ] Validar manualmente a leitura final dos paineis `Components V2` no cliente Discord desktop/mobile
+- [ ] Confirmar em ambiente real se a densidade visual continua boa em guilds com `session health` parcial ou quebrada
 
 ### `v2.1.0` - Smart Session
 
@@ -100,6 +120,11 @@
 - [x] Sugerir `compatibility` como contraprova quando o bloqueio real vier de `YouTube/youtubei`
 - [x] Degradar o runtime de `fidelity/youtubei` para `compatibility/youtube-dl` com retry unico quando a abertura real do stream falhar
 - [x] Endurecer a suite com assertions obrigatorias e mais cobertura direta para comandos/utilitarios e fluxos administrativos/sessao
+- [x] Explicar melhor no resultado do `play` quando o PHONIX precisou preparar conexao, reaproveitou a sessao ou confirmou start real antes da resposta
+- [x] Reforcar `nowplaying`, `queue` e o resultado do `play` com artwork/capa, link da faixa e leitura visual mais forte quando houver metadata disponivel
+- [x] Tornar a resposta de slash segura quando a interaction ja expirou ou nao pode mais ser editada
+- [x] Tornar o descarte de queue idempotente em cleanup de playback, replace, reset de recovery e timeout de fila
+- [x] Reduzir warning duplicado quando o recovery automatico ja falhou da forma esperada e a telemetria ja foi gravada
 - [x] Atualizar `README`, `ARCHITECTURE`, `PROJECT_TRACKER`, `CHANGELOG` e docs operacionais impactadas
 - [x] Alinhar runtime e versao publica para `2.1.0`
 - [x] Rodar `npm run typecheck`

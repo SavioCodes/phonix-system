@@ -1,6 +1,6 @@
 {
   "name": "phonix-bot",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Production Discord music bot with guild session recovery, diagnostics, owner control, and an opt-in Admin Center.",
   "private": true,
   "main": "dist/index.js",
@@ -49,6 +49,7 @@
   "type": "module",
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
+    "@discordjs/builders": "^1.14.1",
     "@discord-player/extractor": "^7.2.0",
     "@discordjs/opus": "^0.10.0",
     "@prisma/client": "^6.9.0",

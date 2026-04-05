@@ -2,7 +2,6 @@ import { SlashCommandBuilder } from 'discord.js';
 import { CommandContext, type CommandDefinition, type CommandResult, parseInteger } from './framework.js';
 import { ValidationCommandError } from './errors.js';
 import { presentCommandView } from './presenters.js';
-import { embeds } from '../ui/embeds.js';
 import { buildCommandUsageDescription } from '../ui/command-guides.js';
 
 type PlayMode = 'queue' | 'next' | 'replace';
@@ -50,20 +49,11 @@ const playCommand: CommandDefinition<PlayArgs> = {
           { name: 'Spotify (bridge)', value: 'spotify' },
         ),
     ),
-  async prepare(context, args) {
+  async prepare(context) {
     if (context.source === 'prefix') {
       await context.signalTyping();
       return;
     }
-
-    await context.reply({
-      embeds: [
-        embeds.info(
-          'PHONIX | Buscando sua musica',
-          buildPlayLoadingDescription(args),
-        ),
-      ],
-    });
   },
   parsePrefix(tokens) {
     return parsePlayPrefixArgs(tokens);
@@ -473,19 +463,6 @@ function normalizePlayQueryInput(query: string) {
   }
 
   return normalized;
-}
-
-function buildPlayLoadingDescription(args: PlayArgs) {
-  const modeLabel =
-    args.mode === 'next' ? 'vai entrar logo depois da faixa atual' : args.mode === 'replace' ? 'vai substituir a fila atual' : 'vai entrar no fim da fila';
-  const sourceLabel =
-    args.source === 'youtube'
-      ? 'Forcando busca no YouTube.'
-      : args.source === 'spotify'
-        ? 'Forcando busca no Spotify; o playback entra por bridge compativel.'
-        : 'Busca automatica ativada.';
-
-  return `Consultando a busca, validando a origem e preparando a sessao. Esta entrada ${modeLabel}. ${sourceLabel} No final eu confirmo se ela entrou no ar agora, em que ponto ficou na fila e qual foi o proximo passo recomendado.`;
 }
 
 function normalizeLoopMode(value?: string): LoopArgs['mode'] | undefined {

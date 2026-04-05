@@ -10,6 +10,7 @@ import {
   type RecoveryTrigger,
 } from './playbackFaults.js';
 import { inferTrackPlaybackRoute, MusicService, PlaybackUnavailableError, type QueueMetadata } from './musicService.js';
+import { tryDeleteGuildQueue } from './queueLifecycle.js';
 import { serializeTrack, type StoredTrack } from './trackCodec.js';
 
 const SESSION_SYNC_DEBOUNCE_MS = 400;
@@ -788,7 +789,7 @@ export class PlaybackSessionManager {
     }
 
     this.ignoredQueueDeletes.add(guildId);
-    queue.delete();
+    tryDeleteGuildQueue(queue);
   }
 
   private async buildRecoveryCandidate(guildId: string, queue?: GuildQueue<QueueMetadata> | null): Promise<RecoveryCandidate | null> {

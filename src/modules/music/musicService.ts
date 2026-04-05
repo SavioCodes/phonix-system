@@ -26,6 +26,7 @@ import type { AppConfig, YouTubeConfig, YouTubePlaybackProfile, YouTubeStreamCli
 import type { GuildSettingsService } from '../library/services/guildSettingsService.js';
 import type { StoredPlaybackSession } from '../library/services/playbackSessionsService.js';
 import type { PlaybackPipeline, PlaybackProvider } from './playbackFaults.js';
+import { tryDeleteGuildQueue } from './queueLifecycle.js';
 
 export interface QueueMetadata {
   textChannelId: Snowflake;
@@ -78,6 +79,14 @@ export interface PlaybackOperationResult {
   provider: PlaybackProvider;
   pipeline: PlaybackPipeline;
   routeKind: PlaybackRouteKind;
+  entry: PlaybackEntryContext;
+}
+
+export interface PlaybackEntryContext {
+  preparedVoiceConnection: boolean;
+  reusedActiveQueue: boolean;
+  awaitedPlaybackStart: boolean;
+  compatibilityFallbackUsed: boolean;
 }
 
 export interface PlaybackRouteDescriptor {
@@ -219,6 +228,12 @@ export class PlaybackUnavailableError extends Error {
 interface PlaybackFailureRouteContext {
   provider?: PlaybackProvider;
   pipeline?: PlaybackPipeline;
+}
+
+interface PlaybackStartResult {
+  result: PlayerNodeInitializationResult<QueueMetadata>;
+  awaitedPlaybackStart: boolean;
+  compatibilityFallbackUsed: boolean;
 }
 
 export class MusicService {
@@ -367,13 +382,16 @@ export class MusicService {
     query: TrackLike,
     requestedBy: GuildMember['user'],
     metadata: QueueMetadata,
-    options: PlaybackRequestOptions = {},
+  options: PlaybackRequestOptions = {},
   ): Promise<PlaybackOperationResult> {
     const mode = options.mode ?? 'queue';
+    const preRequestQueue = this.player.nodes.get<QueueMetadata>(voiceChannel.guild.id);
+    const hadHealthyVoiceConnectionBeforeRequest = preRequestQueue ? hasHealthyVoiceConnection(preRequestQueue) : false;
+    const hadActiveQueueBeforeRequest = Boolean(preRequestQueue?.currentTrack);
 
     if (typeof query !== 'string') {
       const normalizedQuery = normalizePlayableQuery(query);
-      const result = await this.playWithState(
+      const playbackResult = await this.playWithState(
         voiceChannel,
         normalizedQuery,
         requestedBy.id,
@@ -381,25 +399,32 @@ export class MusicService {
         undefined,
         inferPlaybackRouteFromTrackLike(normalizedQuery),
       );
+      const activeRoute = this.inferTrackRoute(playbackResult.result.track);
       return this.buildPlaybackOperationResult({
-        queue: result.queue,
-        searchResult: result.searchResult,
-        track: result.track,
+        queue: playbackResult.result.queue,
+        searchResult: playbackResult.result.searchResult,
+        track: playbackResult.result.track,
         mode,
         source: 'Auto',
         addedCount: 1,
         requestedCount: 1,
         voiceChannelName: voiceChannel.name,
-        provider: 'unknown',
-        pipeline: 'unknown',
-        routeKind: 'unknown',
+        provider: activeRoute.provider,
+        pipeline: activeRoute.pipeline,
+        routeKind: activeRoute.routeKind,
+        entry: {
+          preparedVoiceConnection: !hadHealthyVoiceConnectionBeforeRequest,
+          reusedActiveQueue: hadActiveQueueBeforeRequest,
+          awaitedPlaybackStart: playbackResult.awaitedPlaybackStart,
+          compatibilityFallbackUsed: playbackResult.compatibilityFallbackUsed,
+        },
       });
     }
 
     const resolved = await this.searchPlayableQuery(query, requestedBy.id, options.forcedSource ?? 'auto');
     const requestedTracks = selectTracksForQueueInsertion(resolved.searchResult);
     const requestedCount = requestedTracks.length;
-    const activeQueue = this.player.nodes.get<QueueMetadata>(voiceChannel.guild.id);
+    const activeQueue = preRequestQueue;
     const hasCurrentTrack = Boolean(activeQueue?.currentTrack);
     const acceptedTracks = trimTracksForPlayback(requestedTracks, {
       queue: activeQueue,
@@ -410,10 +435,10 @@ export class MusicService {
 
     if (mode === 'replace') {
       if (activeQueue) {
-        activeQueue.delete();
+        tryDeleteGuildQueue(activeQueue);
       }
 
-      const result = await this.playWithState(
+      const playbackResult = await this.playWithState(
         voiceChannel,
         playbackPayload,
         requestedBy.id,
@@ -426,7 +451,7 @@ export class MusicService {
       );
       const activeRoute = this.inferTrackRoute(acceptedTracks[0]);
       return this.buildPlaybackOperationResult({
-        queue: result.queue,
+        queue: playbackResult.result.queue,
         searchResult: resolved.searchResult,
         track: acceptedTracks[0],
         mode,
@@ -437,11 +462,17 @@ export class MusicService {
         provider: activeRoute.provider,
         pipeline: activeRoute.pipeline,
         routeKind: activeRoute.routeKind,
+        entry: {
+          preparedVoiceConnection: !hadHealthyVoiceConnectionBeforeRequest,
+          reusedActiveQueue: hadActiveQueueBeforeRequest,
+          awaitedPlaybackStart: playbackResult.awaitedPlaybackStart,
+          compatibilityFallbackUsed: playbackResult.compatibilityFallbackUsed,
+        },
       });
     }
 
     if (hasCurrentTrack && activeQueue) {
-      if (!hasHealthyVoiceConnection(activeQueue)) {
+      if (!hadHealthyVoiceConnectionBeforeRequest) {
         await activeQueue.connect(voiceChannel, buildVoiceConnectionOptions());
       }
 
@@ -467,10 +498,16 @@ export class MusicService {
         provider: resolved.provider,
         pipeline: resolved.pipeline,
         routeKind: resolved.routeKind,
+        entry: {
+          preparedVoiceConnection: !hadHealthyVoiceConnectionBeforeRequest,
+          reusedActiveQueue: true,
+          awaitedPlaybackStart: false,
+          compatibilityFallbackUsed: false,
+        },
       });
     }
 
-    const result = await this.playWithState(
+    const playbackResult = await this.playWithState(
       voiceChannel,
       playbackPayload,
       requestedBy.id,
@@ -483,7 +520,7 @@ export class MusicService {
     );
     const activeRoute = this.inferTrackRoute(acceptedTracks[0]);
     return this.buildPlaybackOperationResult({
-      queue: result.queue,
+      queue: playbackResult.result.queue,
       searchResult: resolved.searchResult,
       track: acceptedTracks[0],
       mode,
@@ -494,6 +531,12 @@ export class MusicService {
       provider: activeRoute.provider,
       pipeline: activeRoute.pipeline,
       routeKind: activeRoute.routeKind,
+      entry: {
+        preparedVoiceConnection: !hadHealthyVoiceConnectionBeforeRequest,
+        reusedActiveQueue: hadActiveQueueBeforeRequest,
+        awaitedPlaybackStart: playbackResult.awaitedPlaybackStart,
+        compatibilityFallbackUsed: playbackResult.compatibilityFallbackUsed,
+      },
     });
   }
 
@@ -502,7 +545,7 @@ export class MusicService {
     tracks: StoredTrack[],
     requestedBy: GuildMember['user'],
     metadata: QueueMetadata,
-  ) {
+  ): Promise<PlayerNodeInitializationResult<QueueMetadata>> {
     if (tracks.length === 0) {
       throw new Error('Nao ha faixas salvas para tocar.');
     }
@@ -510,7 +553,7 @@ export class MusicService {
     const payload =
       tracks.length === 1 ? await this.resolvePlayableTrack(tracks[0], requestedBy.id) : await this.resolvePlayableTracks(tracks, requestedBy.id);
 
-    return this.playWithState(
+    const playbackResult = await this.playWithState(
       voiceChannel,
       payload,
       requestedBy.id,
@@ -518,6 +561,8 @@ export class MusicService {
       undefined,
       inferPlaybackRouteFromTrackLike(payload),
     );
+
+    return playbackResult.result;
   }
 
   public async recoverPlaybackSession(
@@ -537,7 +582,7 @@ export class MusicService {
     }
 
     const repeatMode = normalizeRepeatMode(session.repeatMode, session.autoplayEnabled);
-    const result = await this.playWithState(
+    const playbackResult = await this.playWithState(
       voiceChannel,
       resolution.tracks.length === 1 ? resolution.tracks[0] : resolution.tracks,
       requestedById,
@@ -559,7 +604,7 @@ export class MusicService {
 
     return {
       queue,
-      track: result.track,
+      track: playbackResult.result.track,
       requestedTrackCount: storedTracks.length,
       recoveredTrackCount: resolution.tracks.length,
       skippedTrackCount: storedTracks.length - resolution.tracks.length,
@@ -578,7 +623,7 @@ export class MusicService {
   ): Promise<GuildQueue<QueueMetadata>> {
     const existingQueue = this.player.nodes.get<QueueMetadata>(guild.id);
     if (existingQueue && shouldResetQueue(existingQueue)) {
-      existingQueue.delete();
+      tryDeleteGuildQueue(existingQueue);
     }
 
     const repeatMode =
@@ -605,7 +650,7 @@ export class MusicService {
     const queue = this.player.nodes.get<QueueMetadata>(member.guild.id);
 
     if (queue && shouldResetQueue(queue)) {
-      queue.delete();
+      tryDeleteGuildQueue(queue);
       return voiceChannel;
     }
 
@@ -779,6 +824,7 @@ export class MusicService {
     provider: PlaybackProvider;
     pipeline: PlaybackPipeline;
     routeKind: PlaybackRouteKind;
+    entry: PlaybackEntryContext;
   }): PlaybackOperationResult {
     const startedPlayback = input.queue.currentTrack?.id === input.track.id;
 
@@ -806,6 +852,7 @@ export class MusicService {
       provider: input.provider,
       pipeline: input.pipeline,
       routeKind: input.routeKind,
+      entry: input.entry,
     };
   }
 
@@ -838,7 +885,7 @@ export class MusicService {
     playbackState?: PlaybackStateOptions,
     failureRouteContext?: PlaybackFailureRouteContext,
     allowCompatibilityRetry = true,
-  ): Promise<PlayerNodeInitializationResult<QueueMetadata>> {
+  ): Promise<PlaybackStartResult> {
     const queue = await this.ensureQueue(voiceChannel.guild, metadata, playbackState);
     const shouldAwaitPlaybackStart = !queue.isPlaying();
     const playbackFailureContext = failureRouteContext ?? this.inferPlaybackFailureRoute(query);
@@ -866,7 +913,11 @@ export class MusicService {
         await playbackWatcher.promise;
       }
 
-      return result;
+      return {
+        result,
+        awaitedPlaybackStart: shouldAwaitPlaybackStart,
+        compatibilityFallbackUsed: false,
+      };
     } catch (error) {
       playbackWatcher?.dispose();
       try {
@@ -886,7 +937,11 @@ export class MusicService {
         this.shouldRetryWithYoutubeCompatibility(normalizedError, playbackFailureContext) &&
         this.activateYoutubeCompatibilityFallback(normalizedError.message)
       ) {
-        return this.playWithState(voiceChannel, query, requestedById, metadata, playbackState, undefined, false);
+        const retryResult = await this.playWithState(voiceChannel, query, requestedById, metadata, playbackState, undefined, false);
+        return {
+          ...retryResult,
+          compatibilityFallbackUsed: true,
+        };
       }
 
       throw normalizedError;
@@ -1406,7 +1461,7 @@ function shouldResetQueue(queue: GuildQueue<QueueMetadata>) {
 
 function cleanupFailedPlaybackQueue(queue: GuildQueue<QueueMetadata>) {
   if (!hasQueuedTracks(queue) && !queue.isPlaying()) {
-    queue.delete();
+    tryDeleteGuildQueue(queue);
   }
 }
 

@@ -156,6 +156,8 @@ describe('embed factory', () => {
           author: 'Nova',
           duration: '4:00',
           thumbnail: 'https://example.com/thumb.png',
+          url: 'https://youtube.com/watch?v=orbit',
+          sourceLabel: 'YouTube',
         },
         resultType: 'track',
         mode: 'next',
@@ -168,11 +170,18 @@ describe('embed factory', () => {
         estimatedWait: '2:15',
         voiceChannelName: 'Synth Room',
         autoplayEnabled: true,
+        entry: {
+          connection: 'A sessao de voz ja estava pronta antes desta entrada.',
+          session: 'A entrada ficou logo depois da faixa atual sem quebrar o playback em andamento.',
+          startup: 'A faixa nao interrompeu o que ja estava tocando; ela ficou preparada para a vez dela.',
+          runtime: null,
+        },
         hint: 'Use /skip se quiser ir direto para a proxima faixa agora.',
       })
       .toJSON();
 
     expect(embed.title).toBe('PHONIX | Faixa sera a proxima');
+    expect(embed.fields?.some((field) => field.name === 'Entrada do PHONIX' && field.value.includes('logo depois da faixa atual'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Entrada na sessao' && field.value.includes('entra em seguida'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Origem e entrega' && field.value.includes('YouTube'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Fila e timing' && field.value.includes('Synth Room'))).toBe(true);
@@ -191,6 +200,8 @@ describe('embed factory', () => {
           author: 'Metro',
           duration: '4:12',
           thumbnail: 'https://example.com/thumb.png',
+          url: 'https://open.spotify.com/track/after-dark',
+          sourceLabel: 'Spotify (bridge)',
         },
         resultType: 'track',
         mode: 'queue',
@@ -205,10 +216,17 @@ describe('embed factory', () => {
         autoplayEnabled: false,
         sourceRouteKind: 'bridge',
         sourceDetail: 'Spotify hoje funciona por bridge: o link resolve metadados, mas o audio nao sai do source original do Spotify.',
+        entry: {
+          connection: 'A conexao de voz precisou ser preparada nesta solicitacao.',
+          session: 'Esta entrada iniciou a sessao atual do PHONIX neste canal.',
+          startup: 'O PHONIX aguardou o start real da faixa antes de responder.',
+          runtime: null,
+        },
         hint: 'Use /queue para ver a fila.',
       })
       .toJSON();
 
+    expect(embed.image?.url).toBe('https://example.com/thumb.png');
     expect(embed.fields?.some((field) => field.name === 'Origem e entrega' && field.value.includes('Spotify (bridge)'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Clareza de source' && field.value.includes('source original'))).toBe(true);
   });
@@ -216,7 +234,7 @@ describe('embed factory', () => {
   it('creates doctor report embeds', () => {
     const embed = embeds
       .doctor({
-        appVersion: '2.1.0',
+        appVersion: '2.2.0',
         overallStatus: 'warning',
         slashScope: 'global',
         dashboard: {
@@ -248,7 +266,7 @@ describe('embed factory', () => {
       .toJSON();
 
     expect(embed.title).toBe('PHONIX | Diagnostico do sistema');
-    expect(embed.description).toContain('v2.1.0');
+    expect(embed.description).toContain('v2.2.0');
     expect(embed.description).toContain('solicitado, mas indisponivel');
     expect(embed.fields?.some((field) => field.name === 'Runtime e deploy')).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Avisos ativos')).toBe(true);
@@ -264,6 +282,8 @@ describe('embed factory', () => {
           author: 'Nova',
           duration: '4:02',
           thumbnail: 'https://example.com/thumb.png',
+          url: 'https://youtube.com/watch?v=night-drive',
+          sourceLabel: 'YouTube',
         },
         'A faixa entrou nos seus favoritos pessoais.',
         {
@@ -293,6 +313,8 @@ describe('embed factory', () => {
           author: 'Nova',
           duration: '4:02',
           thumbnail: 'https://example.com/thumb.png',
+          url: 'https://youtube.com/watch?v=night-drive',
+          sourceLabel: 'YouTube',
         },
         currentProgressBar: '[=====-----]',
         upcomingTracks: [
@@ -321,7 +343,9 @@ describe('embed factory', () => {
       })
       .toJSON();
 
+    expect(embed.thumbnail?.url).toBe('https://example.com/thumb.png');
     expect(embed.fields?.some((field) => field.name === 'Tocando agora' && field.value.includes('Night Drive'))).toBe(true);
+    expect(embed.fields?.some((field) => field.name === 'Tocando agora' && field.value.includes('YouTube'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Proximas faixas' && field.value.includes('...e mais **1** faixa(s)'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Session snapshot' && field.value.includes('Saude: **parcial**'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Recovery' && field.value.includes('youtube/youtube-dl'))).toBe(true);
@@ -339,6 +363,8 @@ describe('embed factory', () => {
           author: 'Nova',
           duration: '4:02',
           thumbnail: 'https://example.com/thumb.png',
+          url: 'https://youtube.com/watch?v=night-drive',
+          sourceLabel: 'YouTube',
         },
         progressBar: '[=====-----]',
         volume: 70,
@@ -367,7 +393,9 @@ describe('embed factory', () => {
       })
       .toJSON();
 
+    expect(embed.image?.url).toBe('https://example.com/thumb.png');
     expect(embed.fields?.some((field) => field.name === 'Proxima da fila' && field.value.includes('Orbit'))).toBe(true);
+    expect(embed.fields?.some((field) => field.name === 'Agora no ar' && field.value.includes('YouTube'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Playback agora' && field.value.includes('repetir fila'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Recovery' && field.value.includes('youtube/youtube-dl'))).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Proximo passo')).toBe(true);

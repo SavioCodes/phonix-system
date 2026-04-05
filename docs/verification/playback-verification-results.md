@@ -4,8 +4,8 @@
 
 - Ultima atualizacao: `2026-04-05`
 - Estado geral: `PARCIAL`
-- Contexto de release: `v2.1.0`
-- Leitura honesta: o ambiente local confirma `compatibility` funcional, mas o caminho nativo `fidelity/youtubei` continua falhando em `decipher`; por isso o PHONIX agora degrada o runtime para `compatibility` ainda no startup quando esse probe falha.
+- Contexto de release: `v2.2.0`
+- Leitura honesta: o ambiente local confirma `compatibility` funcional, mas o caminho nativo `fidelity/youtubei` continua falhando em `decipher`; por isso o PHONIX agora quarentena esse caminho e degrada o runtime para `compatibility` ainda no startup quando esse probe falha.
 
 ## Estado atual detectado
 
@@ -24,8 +24,9 @@ Resultado confirmado por `npm run verify:playback` no ambiente atual:
 ## Leitura atual
 
 - `compatibility` esta pronto para uso real no ambiente atual.
-- `fidelity/youtubei` continua `EXISTE, MAS ESTA FRAGIL` neste ambiente por falha upstream de `decipher`.
-- o runtime do PHONIX agora detecta esse bloqueio no startup e sobe degradado para `compatibility`, evitando a primeira tentativa quebrada.
+- `fidelity/youtubei` esta `BLOQUEADO NESTE AMBIENTE` por falha upstream de `decipher`.
+- o runtime do PHONIX detecta esse bloqueio no startup e sobe degradado para `compatibility`, evitando a primeira tentativa quebrada e tratando `compatibility` como caminho operacional efetivo desta instalacao.
+- a rodada visual nova de `play`/`queue`/`nowplaying` continua `PARCIAL` ate validacao manual no Discord real, porque a suite automatica garante o contrato de `Components V2`, mas nao a percepcao final dentro do cliente Discord.
 
 ## Matriz A/B do ambiente atual
 
@@ -42,7 +43,7 @@ Resultado confirmado por `npm run verify:playback` no ambiente atual:
 
 ## Proximo passo necessario
 
-O ambiente local nao esta pronto para comparar `compatibility` vs `fidelity` como se os dois estivessem estaveis. Hoje a comparacao honesta depende de tratar `fidelity/youtubei` como caminho fragil neste runtime.
+O ambiente local nao esta pronto para comparar `compatibility` vs `fidelity` como se os dois estivessem estaveis. Hoje a comparacao honesta depende de tratar `fidelity/youtubei` como caminho bloqueado e automaticamente isolado pelo runtime neste host.
 
 Proxima sequencia recomendada:
 
@@ -55,7 +56,8 @@ $env:YOUTUBE_PLAYBACK_PROFILE='fidelity'; npm run start
 ```
 
 3. Em cada rodada, use `/doctor` antes do `/play`
-4. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
+4. Confirme tambem se o resultado do `/play` explicou com clareza a entrada na call e se o `nowplaying` mostrou artwork/origem coerentes
+5. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
 
 Quando a matriz estiver completa, este documento pode sair de `PARCIAL` e virar o registro final da Fase 4, mas sem fingir que o caminho nativo do `youtubei` esta saudavel neste ambiente se isso nao se confirmar.
 

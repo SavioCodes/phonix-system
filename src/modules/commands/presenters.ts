@@ -1,5 +1,6 @@
 import type { CommandReplyPayload } from './framework.js';
 import { embeds } from '../ui/embeds.js';
+import { componentsV2 } from '../ui/components-v2.js';
 import { buildHelpNavigationComponents } from './helpComponents.js';
 import type { CommandView, DoctorResultView, GuildConfigResult, HelpResultView } from '../ui/view-models.js';
 
@@ -14,30 +15,20 @@ export function presentCommandView(result: CommandView): CommandReplyPayload {
         embeds: [embeds.trackCard(result.title, result.track, result.description, { fields: result.fields, hint: result.hint })],
       };
     case 'play':
-      return {
-        embeds: [embeds.playResult(result)],
-      };
+      return componentsV2.playResult(result);
     case 'queue':
-      return {
-        embeds: [embeds.queueView(result)],
-      };
+      return componentsV2.queueView(result);
     case 'nowPlaying':
-      return {
-        embeds: [embeds.nowPlayingView(result)],
-      };
+      return componentsV2.nowPlayingView(result);
   }
 }
 
 export function presentGuildConfigResult(result: GuildConfigResult): CommandReplyPayload {
-  return {
-    embeds: [embeds.settings(result)],
-  };
+  return componentsV2.settings(result);
 }
 
 export function presentDoctorResult(result: DoctorResultView): CommandReplyPayload {
-  return {
-    embeds: [embeds.doctor(result)],
-  };
+  return componentsV2.doctor(result);
 }
 
 export function presentHelpResult(result: HelpResultView): CommandReplyPayload {

@@ -126,6 +126,48 @@ describe('command execution pipeline', () => {
     expect(prepare.mock.invocationCallOrder[0]).toBeLessThan(execute.mock.invocationCallOrder[0]);
   });
 
+  it('aborts cleanly when a slash interaction can no longer be acknowledged', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger);
+    const execute = vi.fn().mockResolvedValue({ content: 'nao deve responder' });
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const replyError = vi.fn().mockResolvedValue(undefined);
+
+    await executeCommand(
+      {
+        name: 'play',
+        description: 'Toca faixa',
+        data: {} as never,
+        parsePrefix: vi.fn(),
+        parseSlash: vi.fn(),
+        execute,
+      },
+      {
+        defer: vi.fn().mockResolvedValue(false),
+        reply,
+        replyError,
+        source: 'slash',
+        guild: { id: 'guild-expired' },
+        user: { id: 'user-expired' },
+      } as never,
+      () => ({}),
+    );
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(reply).not.toHaveBeenCalled();
+    expect(replyError).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: 'play',
+        source: 'slash',
+        guildId: 'guild-expired',
+        userId: 'user-expired',
+        status: 'error',
+        errorKind: 'interaction',
+      }),
+      'Command aborted because the interaction could not be acknowledged in time',
+    );
+  });
+
   it('keeps dependency errors at warning level', async () => {
     const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger);
     const replyError = vi.fn().mockResolvedValue(undefined);

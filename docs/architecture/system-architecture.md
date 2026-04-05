@@ -143,9 +143,27 @@ assets/
 - Na `v2.1.0`, `queue`, `nowplaying`, `config` e `help` passaram a carregar explicitamente session health, ultimo resultado de recovery, prontidao para recover e necessidade de intervencao manual.
 - Ainda na linha `v2.1.0`, a camada visual do Discord passou a diferenciar de forma mais forte `success`, `info`, `warning` e `error`, alem de tratar `queue`, `nowplaying`, `config` e `doctor` como paineis operacionais curtos, e nao como dumps de texto.
 - Ainda dentro dessa linha, `TrackNoticeView` passou a aceitar campos contextuais e hint de proximo passo, o que permitiu a favoritos e playlists deixar de responder apenas com um card seco de faixa.
+- O passe mais recente dessa mesma linha fortaleceu o contrato compartilhado de midia: `trackCards.ts`, `view-models.ts` e `embeds.ts` agora reaproveitam artwork, link e origem da faixa para `play`, `queue` e `nowplaying`, sem abrir um segundo sistema de apresentacao paralelo ao runtime.
+- Na `v2.2.0`, a superficie Discord entra em um design system hibrido: `components-v2.ts` concentra paineis densos com `Container`, `Section`, `TextDisplay`, `MediaGallery` e `Separator` para `play`, `queue`, `nowplaying`, `config view` e `doctor`, enquanto `help`, notices compactos e fluxos transacionais curtos continuam em embeds/classic action rows por ergonomia e manutencao.
+- A mesma linha tambem troca a dependencia de emoji como linguagem principal por branding de asset real do PHONIX em `theme.ts`, permitindo author/footer/media icons consistentes sem criar uma segunda arquitetura de UI.
 - `src/scripts/verify-playback.ts` e `docs/verification/playback-verification.md` formam a camada operacional de verificacao A/B, unindo checks automatizados locais com roteiro manual de bitrate/perfil no Discord.
 - `src/scripts/verify-dashboard.ts` e `docs/verification/admin-center-verification.md` formam a camada operacional do painel web, separando verificacao automatica local de validacao manual do OAuth.
 - `docs/verification/playback-verification-results.md` funciona como artefato de saida dessa frente: ele registra o estado atual do ambiente e a matriz manual preenchida, sem misturar resultado com o runbook.
+
+## Referencias oficiais usadas na linha `v2.2.0`
+
+- Discord Components docs: https://docs.discord.com/developers/components/using-message-components
+- Discord Components reference: https://docs.discord.com/developers/components/reference
+- Discord interactions and response lifecycle: https://docs.discord.com/developers/interactions/receiving-and-responding
+- discord.js `InteractionReplyOptions`: https://discord.js.org/docs/packages/discord.js/main/InteractionReplyOptions%3AInterface
+- discord-player events: https://discord-player.js.org/docs/common-actions/adding_events
+- discord-player stream sources: https://discord-player.js.org/docs/extractors/stream_sources
+
+Essas referencias sustentam tres decisoes explicitas desta linha:
+
+- `Components V2` entram apenas onde a hierarquia visual realmente melhora a leitura do produto.
+- `help`, notices compactos e fluxos curtos continuam classicos porque o ganho visual de V2 nao compensa a perda de simplicidade e manutencao nessas superficies.
+- O pipeline de resposta respeita a restricao oficial de `IS_COMPONENTS_V2`: paineis V2 nao misturam `content` ou `embeds` no mesmo payload.
 
 ### `src/scripts`
 
@@ -201,6 +219,7 @@ assets/
 - A revisao `v2.0.5` adicionou um eixo novo de controle seguro: owner access centralizado por Discord User ID, startup DM auditavel e destaque explicito da guild oficial sem abrir privilegios para usuarios comuns.
 - A revisao `v2.1.0` fortaleceu a continuidade operacional por guild: o produto passou a distinguir recovery completo, parcial e quebrado no runtime, na telemetria, no `doctor` e nos embeds principais.
 - O passe visual mais recente dentro da linha `v2.1.0` reforcou a hierarquia da superficie Discord sem mudar a arquitetura: notices ficaram estruturados, `play` ficou mais facil de escanear e `doctor` passou a se organizar por blocos de leitura rapida.
+- A linha `v2.2.0` aprofunda isso sem quebrar a divisao de responsabilidades: `framework.ts` passa a aceitar payloads `Components V2`, `presenters.ts` decide quais superficies sao V2 ou classicas, e `help` permanece no trilho interativo antigo porque a UX dessa central ainda depende melhor de select menu e botoes tradicionais.
 - Camada de use cases adicionada para reduzir acoplamento entre `commands`, `music`, `library` e `diagnostics`.
 - Presenters adicionados para manter mapeamento de UI fora dos comandos e fora dos services.
 - Central interativa de `help` adicionada sem criar novos root commands nem persistir estado em banco.

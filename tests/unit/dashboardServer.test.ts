@@ -647,7 +647,7 @@ function createUseCaseStubs() {
     listGuilds: vi.fn().mockImplementation(async (guildIds: string[]) => guilds.filter((guild) => guildIds.includes(guild.id))),
     getOverview: vi.fn().mockResolvedValue({
       guild: guilds[0],
-      appVersion: '2.1.0',
+      appVersion: '2.2.0',
       botReady: true,
       botTag: 'PHONIX#0001',
       queue: {
@@ -714,7 +714,7 @@ function createUseCaseStubs() {
     getDoctor: vi.fn().mockResolvedValue({
       guild: guilds[0],
       report: {
-        appVersion: '2.1.0',
+        appVersion: '2.2.0',
         overallStatus: 'ok',
         summary: { ok: 5, warning: 0, error: 0 },
         slashScope: 'global',
@@ -839,7 +839,7 @@ function createUseCaseStubs() {
 
 function createConfig(): AppConfig {
   return {
-    appVersion: '2.1.0',
+    appVersion: '2.2.0',
     discordToken: 'token',
     discordClientId: 'client-id',
     databaseUrl: 'file:./data/test.db',

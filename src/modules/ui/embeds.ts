@@ -21,7 +21,7 @@ function baseEmbed(color: number, title: string, description?: string) {
     .setColor(color)
     .setTitle(title)
     .setDescription(description ?? null)
-    .setFooter({ text: theme.footerText })
+    .setFooter({ text: theme.footerText, iconURL: theme.assets.logoUrl })
     .setTimestamp();
 }
 
@@ -80,9 +80,16 @@ export const embeds = {
       helpPageColor(view.currentPage),
       page.title,
       page.description,
-    ).setFooter({
-      text: `PHONIX | Ajuda guiada | ${page.label} | ${pageIndex + 1}/${helpPageOrder.length}`,
-    });
+    )
+      .setAuthor({
+        name: 'PHONIX | Centro guiado',
+        iconURL: theme.assets.avatarUrl,
+      })
+      .setThumbnail(theme.assets.avatarUrl)
+      .setFooter({
+        text: `PHONIX | Ajuda guiada | ${page.label} | ${pageIndex + 1}/${helpPageOrder.length}`,
+        iconURL: theme.assets.logoUrl,
+      });
 
     if (page.fields.length > 0) {
       embed.addFields(page.fields);
@@ -114,11 +121,15 @@ export const embeds = {
   queueView(view: QueueView) {
     const currentTrackValue = view.currentTrack
       ? [
-          `**${view.currentTrack.title}**`,
+          buildTrackHeadline(view.currentTrack),
           `Artista: **${view.currentTrack.author || 'Desconhecido'}**`,
           `Duracao: **${view.currentTrack.duration}**`,
+          view.currentTrack.sourceLabel ? `Origem: **${view.currentTrack.sourceLabel}**` : null,
+          buildTrackLinkLine(view.currentTrack),
           view.currentProgressBar ?? 'Progresso indisponivel.',
-        ].join('\n')
+        ]
+          .filter(Boolean)
+          .join('\n')
       : 'Nenhuma faixa tocando no momento. Use `/play` ou `!tocar` para iniciar a sessao.';
 
     const upcomingValue =
@@ -131,11 +142,15 @@ export const embeds = {
             .join('\n')
         : 'A fila nao tem proximas faixas. Use `/play`, `!tocar`, `/favorite play` ou `/playlist play` para continuar.';
 
-    return baseEmbed(
+    const embed = baseEmbed(
       theme.colors.cyanSignal,
       view.title,
       view.description,
-    ).addFields(
+    );
+
+    applyTrackArtwork(embed, view.currentTrack, 'thumbnail');
+
+    return embed.addFields(
       {
         name: 'Tocando agora',
         value: currentTrackValue,
@@ -219,20 +234,26 @@ export const embeds = {
       });
     }
 
-    return baseEmbed(
+    const embed = baseEmbed(
       theme.colors.electricBlue,
       view.title,
       view.description,
-    )
-      .setThumbnail(view.track.thumbnail)
-      .addFields(
+    );
+
+    applyTrackArtwork(embed, view.track, 'image');
+
+    return embed.addFields(
         {
-          name: 'Faixa atual',
+          name: 'Agora no ar',
           value: [
-            `**${view.track.title}**`,
+            buildTrackHeadline(view.track),
             `Artista: **${view.track.author || 'Desconhecido'}**`,
             `Duracao: **${view.track.duration}**`,
-          ].join('\n'),
+            view.track.sourceLabel ? `Origem: **${view.track.sourceLabel}**` : null,
+            buildTrackLinkLine(view.track),
+          ]
+            .filter(Boolean)
+            .join('\n'),
           inline: false,
         },
         {
@@ -305,13 +326,24 @@ export const embeds = {
     description: string,
     options: { fields?: NoticeFieldView[]; hint?: string | null } = {},
   ) {
-    const embed = baseEmbed(theme.colors.electricBlue, title, description)
-      .setThumbnail(track.thumbnail)
+    const embed = applyTrackArtwork(baseEmbed(theme.colors.electricBlue, title, description), track, 'thumbnail')
       .addFields(
-        { name: 'Faixa', value: `**${track.title}**`, inline: false },
+        {
+          name: 'Faixa',
+          value: [buildTrackHeadline(track), buildTrackLinkLine(track)].filter(Boolean).join('\n'),
+          inline: false,
+        },
         { name: 'Artista', value: track.author || 'Desconhecido', inline: true },
         { name: 'Duracao', value: track.duration, inline: true },
       );
+
+    if (track.sourceLabel) {
+      embed.addFields({
+        name: 'Origem',
+        value: track.sourceLabel,
+        inline: true,
+      });
+    }
 
     if (options.fields?.length) {
       embed.addFields(options.fields);
@@ -354,16 +386,35 @@ export const embeds = {
       .filter(Boolean)
       .join('\n');
 
-    const embed = baseEmbed(playResultColor(view), view.title, view.description)
-      .setThumbnail(view.track.thumbnail)
+    const embed = applyTrackArtwork(
+      baseEmbed(playResultColor(view), view.title, view.description),
+      view.track,
+      view.startedPlayback || view.mode === 'replace' ? 'image' : 'thumbnail',
+    )
       .addFields(
         {
           name: 'Faixa escolhida',
           value: [
-            `**${view.track.title}**`,
+            buildTrackHeadline(view.track),
             `Artista: **${view.track.author || 'Desconhecido'}**`,
             `Duracao: **${view.track.duration}**`,
-          ].join('\n'),
+            view.track.sourceLabel ? `Origem: **${view.track.sourceLabel}**` : null,
+            buildTrackLinkLine(view.track),
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          inline: false,
+        },
+        {
+          name: 'Entrada do PHONIX',
+          value: [
+            view.entry.connection,
+            view.entry.session,
+            view.entry.startup,
+            view.entry.runtime,
+          ]
+            .filter(Boolean)
+            .join('\n'),
           inline: false,
         },
         {
@@ -545,6 +596,7 @@ function buildNoticeEmbed(view: NoticeView) {
   const spec = resolveNoticeSpec(view.variant);
   const embed = baseEmbed(spec.color, view.title, view.description).setAuthor({
     name: `PHONIX | ${spec.label}`,
+    iconURL: theme.assets.avatarUrl,
   });
 
   embed.addFields({
@@ -829,6 +881,29 @@ function resolveNoticeSpec(variant: NoticeVariant) {
 
 function formatEnabled(value: boolean) {
   return value ? 'sim' : 'nao';
+}
+
+function applyTrackArtwork(embed: EmbedBuilder, track: TrackCardView | null, mode: 'thumbnail' | 'image') {
+  const artwork = track?.thumbnail?.trim();
+  if (!artwork) {
+    return embed;
+  }
+
+  if (mode === 'image') {
+    embed.setImage(artwork);
+    return embed;
+  }
+
+  embed.setThumbnail(artwork);
+  return embed;
+}
+
+function buildTrackHeadline(track: TrackCardView) {
+  return `**${track.title}**`;
+}
+
+function buildTrackLinkLine(track: TrackCardView) {
+  return track.url ? `[Abrir no source](${track.url})` : null;
 }
 
 function buildSessionHint(input: {

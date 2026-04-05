@@ -1,21 +1,23 @@
 import type {
-  ActionRowBuilder,
   ChatInputCommandInteraction,
   Client,
-  EmbedBuilder,
   Guild,
   GuildMember,
-  MessageActionRowComponentBuilder,
+  InteractionEditReplyOptions,
+  InteractionReplyOptions,
   Message,
+  MessageCreateOptions,
   PermissionResolvable,
   SlashCommandBuilder,
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
   User,
 } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import type { MusicService, QueueMetadata } from '../music/musicService.js';
 import type { PlaybackSessionManager } from '../music/playbackSessionManager.js';
 import type { AppServiceContainer, AppUseCaseContainer } from '../../app/service-container.js';
+import { logger } from '../../core/logging/logger.js';
 import { embeds } from '../ui/embeds.js';
 import type { NoticeFieldView } from '../ui/view-models.js';
 import { ValidationCommandError } from './errors.js';
@@ -40,14 +42,17 @@ export interface CommandContextInit {
 }
 
 export interface CommandReplyPayload {
-  content?: string;
-  embeds?: EmbedBuilder[];
-  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[];
+  content?: MessageCreateOptions['content'];
+  embeds?: MessageCreateOptions['embeds'];
+  components?: MessageCreateOptions['components'];
+  flags?: number;
 }
 
 export type CommandResult = CommandReplyPayload | void;
 
 export class CommandContext {
+  private interactionResponseUnavailable = false;
+
   public constructor(private readonly init: CommandContextInit) {}
 
   public get client() {
@@ -101,24 +106,71 @@ export class CommandContext {
 
   public async defer() {
     if (this.init.interaction && !this.init.interaction.deferred && !this.init.interaction.replied) {
-      await this.init.interaction.deferReply();
+      try {
+        await this.init.interaction.deferReply();
+      } catch (error) {
+        if (isInteractionLifecycleError(error)) {
+          this.interactionResponseUnavailable = true;
+          logger.warn(
+            {
+              guildId: this.guild.id,
+              userId: this.user.id,
+              source: this.source,
+              err: error,
+            },
+            'Slash interaction expired before PHONIX could acknowledge the command',
+          );
+          return false;
+        }
+
+        throw error;
+      }
     }
+
+    return true;
   }
 
   public async reply(payload: CommandReplyPayload) {
     if (this.init.interaction) {
-      if (this.init.interaction.deferred || this.init.interaction.replied) {
-        return this.init.interaction.editReply(payload);
+      if (this.interactionResponseUnavailable) {
+        return undefined;
       }
 
-      return this.init.interaction.reply(payload);
+      try {
+        if (this.init.interaction.deferred || this.init.interaction.replied) {
+          return await this.init.interaction.editReply(toInteractionEditReplyOptions(payload));
+        }
+
+        return await this.init.interaction.reply(toInteractionReplyOptions(payload));
+      } catch (error) {
+        if (isInteractionLifecycleError(error)) {
+          this.interactionResponseUnavailable = true;
+          logger.warn(
+            {
+              guildId: this.guild.id,
+              userId: this.user.id,
+              source: this.source,
+              err: error,
+            },
+            'PHONIX could not deliver the interaction response because the interaction was no longer valid',
+          );
+          return undefined;
+        }
+
+        throw error;
+      }
     }
 
     if (!this.init.message) {
       throw new Error('No message context available.');
     }
 
-    return this.init.message.reply(payload);
+    return this.init.message.reply({
+      content: payload.content,
+      embeds: payload.embeds,
+      components: payload.components,
+      flags: payload.flags,
+    });
   }
 
   public async replyError(
@@ -151,6 +203,53 @@ export class CommandContext {
       await this.init.message.channel.sendTyping();
     }
   }
+}
+
+function toInteractionReplyOptions(payload: CommandReplyPayload): InteractionReplyOptions {
+  return {
+    content: payload.content,
+    embeds: payload.embeds,
+    components: payload.components,
+    flags: payload.flags,
+  };
+}
+
+function toInteractionEditReplyOptions(payload: CommandReplyPayload): InteractionEditReplyOptions {
+  const flags = normalizeInteractionEditFlags(payload.flags);
+
+  if (flags === undefined) {
+    return {
+      content: payload.content,
+      embeds: payload.embeds,
+      components: payload.components,
+    };
+  }
+
+  return {
+    content: payload.content,
+    embeds: payload.embeds,
+    components: payload.components,
+    flags,
+  };
+}
+
+function normalizeInteractionEditFlags(flags: CommandReplyPayload['flags']): InteractionEditReplyOptions['flags'] {
+  if (flags === undefined) {
+    return undefined;
+  }
+
+  const allowed = flags & (MessageFlags.SuppressEmbeds | MessageFlags.IsComponentsV2);
+
+  return allowed === 0 ? undefined : (allowed as InteractionEditReplyOptions['flags']);
+}
+
+function isInteractionLifecycleError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = (error as { code?: number | string }).code;
+  return code === 10062 || code === 10015 || code === 40060;
 }
 
 export interface CommandDefinition<TArgs> {

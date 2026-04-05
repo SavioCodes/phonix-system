@@ -26,7 +26,18 @@ export async function executeCommand<TArgs>(
       ?.operationalTelemetry;
 
     if (command.defer ?? true) {
-      await context.defer();
+      const acknowledged = await context.defer();
+      if (acknowledged === false) {
+        const telemetry = buildTelemetry(command.name, context, {
+          startedAt,
+          status: 'error',
+          errorKind: 'interaction',
+        });
+
+        logger.warn(telemetry, 'Command aborted because the interaction could not be acknowledged in time');
+        telemetryService?.recordCommandExecution(telemetry);
+        return;
+      }
     }
 
     await command.prepare?.(context, args);

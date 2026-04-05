@@ -12,7 +12,8 @@ import {
   classifyPlayerError,
   classifyQueueError,
 } from '../modules/music/playbackFaults.js';
-import { inferTrackPlaybackRoute } from '../modules/music/musicService.js';
+import { inferTrackPlaybackRoute, PlaybackUnavailableError } from '../modules/music/musicService.js';
+import { tryDeleteGuildQueue } from '../modules/music/queueLifecycle.js';
 import { serializeTrack } from '../modules/music/trackCodec.js';
 
 export function registerClientEvents(client: Client, services: CommandServices) {
@@ -75,22 +76,47 @@ export function registerClientEvents(client: Client, services: CommandServices) 
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (interaction.isButton() || interaction.isStringSelectMenu()) {
-      const handled = await handleHelpComponentInteraction(interaction, services);
-      if (handled) {
+    try {
+      if (interaction.isButton() || interaction.isStringSelectMenu()) {
+        const handled = await handleHelpComponentInteraction(interaction, services);
+        if (handled) {
+          return;
+        }
+      }
+
+      if (!interaction.isChatInputCommand()) {
         return;
       }
-    }
 
-    if (!interaction.isChatInputCommand()) {
-      return;
+      await handleSlashInteraction(interaction, services);
+    } catch (error) {
+      logger.error(
+        {
+          err: error,
+          interactionId: interaction.id,
+          commandName: interaction.isChatInputCommand() ? interaction.commandName : null,
+          guildId: interaction.guildId ?? null,
+          userId: interaction.user?.id ?? null,
+        },
+        'Slash interaction handling failed',
+      );
     }
-
-    await handleSlashInteraction(interaction, services);
   });
 
   client.on(Events.MessageCreate, async (message) => {
-    await handlePrefixMessage(message, services);
+    try {
+      await handlePrefixMessage(message, services);
+    } catch (error) {
+      logger.error(
+        {
+          err: error,
+          messageId: message.id,
+          guildId: message.guildId ?? null,
+          userId: message.author?.id ?? null,
+        },
+        'Prefix message handling failed',
+      );
+    }
   });
 
   services.player.events.on(GuildQueueEvent.PlayerStart, async (queue, track) => {
@@ -192,7 +218,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
       terminal: descriptor.terminal,
     });
     void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'connection_destroyed').catch((error) => {
-      logger.warn({ guildId: queue.guild.id, err: error }, 'Automatic recovery after connection destruction failed');
+      logAutomaticRecoveryFailure(queue.guild.id, error, 'Automatic recovery after connection destruction failed');
     });
   });
 
@@ -222,7 +248,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
       terminal: descriptor.terminal,
     });
     void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'disconnect').catch((error) => {
-      logger.warn({ guildId: queue.guild.id, err: error }, 'Automatic recovery after disconnect failed');
+      logAutomaticRecoveryFailure(queue.guild.id, error, 'Automatic recovery after disconnect failed');
     });
   });
 
@@ -252,7 +278,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
       terminal: descriptor.terminal,
     });
     void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'disconnect').catch((error) => {
-      logger.warn({ guildId: queue.guild.id, err: error }, 'Playback state could not be preserved after empty channel');
+      logAutomaticRecoveryFailure(queue.guild.id, error, 'Playback state could not be preserved after empty channel');
     });
   });
 
@@ -300,11 +326,11 @@ export function registerClientEvents(client: Client, services: CommandServices) 
       logger.warn(payload, 'Guild queue connection timed out');
 
       if (!queue.isPlaying()) {
-        queue.delete();
+        tryDeleteGuildQueue(queue);
       }
 
       void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'queue_error').catch((recoveryError) => {
-        logger.warn({ guildId: queue.guild.id, err: recoveryError }, 'Automatic recovery after queue timeout failed');
+        logAutomaticRecoveryFailure(queue.guild.id, recoveryError, 'Automatic recovery after queue timeout failed');
       });
 
       return;
@@ -313,7 +339,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
     if (descriptor.recoverable) {
       logger.warn(payload, 'Guild queue error marked as recoverable');
       void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'queue_error').catch((recoveryError) => {
-        logger.warn({ guildId: queue.guild.id, err: recoveryError }, 'Automatic recovery after queue error failed');
+        logAutomaticRecoveryFailure(queue.guild.id, recoveryError, 'Automatic recovery after queue error failed');
       });
       return;
     }
@@ -345,7 +371,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
     if (isRecoverablePlaybackLookupError(error)) {
       logger.warn(payload, 'Audio player could not resolve a playable stream');
       void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'player_error').catch((recoveryError) => {
-        logger.warn({ guildId: queue.guild.id, err: recoveryError }, 'Automatic recovery after player error failed');
+        logAutomaticRecoveryFailure(queue.guild.id, recoveryError, 'Automatic recovery after player error failed');
       });
       return;
     }
@@ -353,7 +379,7 @@ export function registerClientEvents(client: Client, services: CommandServices) 
     if (descriptor.recoverable) {
       logger.warn(payload, 'Audio player error marked as recoverable');
       void services.playbackSessionManager.handleRuntimeFault(queue, descriptor, 'player_error').catch((recoveryError) => {
-        logger.warn({ guildId: queue.guild.id, err: recoveryError }, 'Automatic recovery after player error failed');
+        logAutomaticRecoveryFailure(queue.guild.id, recoveryError, 'Automatic recovery after player error failed');
       });
       return;
     }
@@ -364,6 +390,15 @@ export function registerClientEvents(client: Client, services: CommandServices) 
   services.player.on(PlayerEvent.Error, (error) => {
     logger.error({ err: error }, 'Player runtime error');
   });
+}
+
+function logAutomaticRecoveryFailure(guildId: string, error: unknown, message: string) {
+  if (isExpectedAutomaticRecoveryFailure(error)) {
+    logger.debug({ guildId, err: error }, message);
+    return;
+  }
+
+  logger.warn({ guildId, err: error }, message);
 }
 
 async function recordTrackHistory(services: CommandServices, guildId: string, track: Track) {
@@ -389,4 +424,16 @@ function isRecoverablePlaybackLookupError(error: unknown) {
     (((error as { code?: string }).code === 'ERR_NO_RESULT' && /no results found for/iu.test(error.message)) ||
       /could not extract stream for this track/iu.test(error.message))
   );
+}
+
+function isExpectedAutomaticRecoveryFailure(error: unknown) {
+  if (error instanceof PlaybackUnavailableError) {
+    return true;
+  }
+
+  if (error instanceof Error && /recovery automatico abortado/iu.test(error.message)) {
+    return true;
+  }
+
+  return classifyQueueError(error).recoverable;
 }

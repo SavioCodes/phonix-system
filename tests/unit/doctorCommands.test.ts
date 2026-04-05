@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from 'discord.js';
+import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { doctorCommands } from '../../src/modules/commands/doctorCommands.js';
 import { createCommandContext } from '../support/commandContext.js';
@@ -17,7 +17,7 @@ describe('doctor command', () => {
 
   it('delegates doctor execution to the admin use case with guild runtime context', async () => {
     const doctor = vi.fn().mockResolvedValue({
-      appVersion: '2.1.0',
+      appVersion: '2.2.0',
       overallStatus: 'ok',
       summary: { ok: 1, warning: 0, error: 0 },
       slashScope: 'global',
@@ -57,6 +57,14 @@ describe('doctor command', () => {
       userId: 'user-1',
       textChannelId: 'text-1',
     });
-    expect(payload?.embeds?.[0]?.data?.title).toBe('PHONIX | Diagnostico do sistema');
+    expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
+    const rendered = payload?.components?.[0];
+    expect(rendered && 'toJSON' in rendered ? rendered.toJSON() : rendered).toMatchObject({
+      components: expect.arrayContaining([
+        expect.objectContaining({
+          content: expect.stringContaining('PHONIX | Diagnostico do sistema'),
+        }),
+      ]),
+    });
   });
 });

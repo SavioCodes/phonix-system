@@ -462,12 +462,15 @@ function notice(
 
 function toPlayResultView(result: Awaited<ReturnType<MusicService['play']>>): PlayResultView {
   const description = buildPlayDescription(result);
+  const entry = buildPlayEntryView(result);
 
   return {
     kind: 'play',
     title: buildPlayTitle(result),
     description,
-    track: toTrackCardView(result.track),
+    track: toTrackCardView(result.track, {
+      sourceLabel: formatTrackSourceLabel(result.provider, result.routeKind),
+    }),
     resultType: result.resultType,
     mode: result.mode,
     source: result.source,
@@ -481,6 +484,7 @@ function toPlayResultView(result: Awaited<ReturnType<MusicService['play']>>): Pl
     autoplayEnabled: result.autoplayEnabled,
     sourceRouteKind: result.routeKind,
     sourceDetail: buildPlaySourceDetail(result),
+    entry,
     hint: result.hint ?? buildPlayHint(result),
   };
 }
@@ -549,6 +553,18 @@ function buildPlayDescription(result: Awaited<ReturnType<MusicService['play']>>)
     description += ' O link do Spotify foi resolvido por bridge; o PHONIX usa os metadados do Spotify, mas toca por uma origem compativel em vez do source original.';
   }
 
+  if (result.startedPlayback && result.entry.preparedVoiceConnection) {
+    description += ' O PHONIX preparou a conexao do canal nesta mesma solicitacao.';
+  }
+
+  if (result.startedPlayback && result.entry.awaitedPlaybackStart) {
+    description += ' O inicio real do playback foi confirmado antes da resposta.';
+  }
+
+  if (result.entry.compatibilityFallbackUsed) {
+    description += ' O runtime degradou o YouTube para compatibility nesta tentativa para evitar que a sessao morresse no primeiro stream.';
+  }
+
   return description;
 }
 
@@ -561,6 +577,10 @@ function buildPlaySourceDetail(result: Awaited<ReturnType<MusicService['play']>>
 }
 
 function buildPlayHint(result: Awaited<ReturnType<MusicService['play']>>) {
+  if (result.entry.compatibilityFallbackUsed && result.startedPlayback) {
+    return 'Use `/nowplaying` para confirmar a sessao atual e `/doctor` se quiser revisar o downgrade de pipeline aplicado nesta tentativa.';
+  }
+
   if (result.startedPlayback && result.resultType === 'playlist') {
     return 'Use `/queue` para revisar a ordem completa da playlist, `/shuffle` se quiser embaralhar as proximas faixas ou `/nowplaying` para focar na musica atual.';
   }
@@ -586,6 +606,7 @@ function buildPlayHint(result: Awaited<ReturnType<MusicService['play']>>) {
 
 function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSessionDiagnostics, music: MusicService): QueueView {
   const current = queue.currentTrack;
+  const currentRoute = current ? music.inferTrackRoute?.(current) ?? inferTrackPlaybackRoute(current) : null;
   const visibleUpcoming = queue.tracks.toArray().slice(0, 10);
   const upcomingTracks: QueueEntryView[] = queue.tracks
     .toArray()
@@ -602,7 +623,11 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
     description: current
       ? `Sessao ativa em **${queue.channel?.name ?? 'canal nao identificado'}**. O PHONIX mostra o que esta tocando agora, o que vem depois e como a sessao esta se comportando.`
       : 'A fila existe, mas nenhuma faixa entrou no ar ainda. Use `/play` ou `!tocar` para iniciar a sessao.',
-    currentTrack: current ? toTrackCardView(current) : null,
+    currentTrack: current
+      ? toTrackCardView(current, {
+          sourceLabel: currentRoute ? formatTrackSourceLabel(currentRoute.provider, currentRoute.routeKind) : null,
+        })
+      : null,
     currentProgressBar: current ? (queue.node.createProgressBar?.() ?? 'Progresso indisponivel.') : null,
     upcomingTracks,
     size: queue.size,
@@ -619,6 +644,7 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
 function toNowPlayingView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSessionDiagnostics, music: MusicService): NowPlayingView {
   const track = queue.currentTrack;
   const nextTrack = queue.tracks.at(0);
+  const trackRoute = track ? music.inferTrackRoute?.(track) ?? inferTrackPlaybackRoute(track) : null;
 
   return {
     kind: 'nowPlaying',
@@ -626,7 +652,11 @@ function toNowPlayingView(queue: GuildQueue<QueueMetadata>, diagnostics: Playbac
     description: track
       ? `**${track.title}** esta tocando agora em **${queue.channel?.name ?? 'canal nao identificado'}**.`
       : 'A fila ainda nao iniciou nenhuma faixa. Use `/play` ou `!tocar` para comecar.',
-    track: track ? toTrackCardView(track) : null,
+    track: track
+      ? toTrackCardView(track, {
+          sourceLabel: trackRoute ? formatTrackSourceLabel(trackRoute.provider, trackRoute.routeKind) : null,
+        })
+      : null,
     progressBar: track ? (queue.node.createProgressBar?.() ?? 'Progresso indisponivel.') : null,
     volume: queue.node.volume,
     voiceChannelName: queue.channel?.name ?? null,
@@ -671,6 +701,52 @@ function buildSessionStatusView(
     currentRouteLabel:
       route.provider === 'unknown' ? null : `${route.provider}/${route.pipeline}${route.routeKind === 'bridge' ? ' (bridge)' : ''}`,
   };
+}
+
+function buildPlayEntryView(result: Awaited<ReturnType<MusicService['play']>>) {
+  return {
+    connection: result.entry.preparedVoiceConnection
+      ? 'A conexao de voz precisou ser preparada nesta solicitacao.'
+      : 'A sessao de voz ja estava pronta antes desta entrada.',
+    session:
+      result.mode === 'replace'
+        ? 'A busca atual substituiu a fila anterior e virou a nova base da sessao.'
+        : result.startedPlayback
+          ? result.entry.reusedActiveQueue
+            ? 'A faixa assumiu a sessao que ja existia neste canal.'
+            : 'Esta entrada iniciou a sessao atual do PHONIX neste canal.'
+          : result.mode === 'next'
+            ? 'A entrada ficou logo depois da faixa atual sem quebrar o playback em andamento.'
+            : 'A sessao ativa foi reaproveitada e a entrada ficou aguardando na fila.',
+    startup:
+      result.startedPlayback && result.entry.awaitedPlaybackStart
+        ? 'O PHONIX aguardou o start real da faixa antes de responder.'
+        : result.startedPlayback
+          ? 'A faixa ja estava no ar quando esta resposta foi emitida.'
+          : 'A faixa nao interrompeu o que ja estava tocando; ela ficou preparada para a vez dela.',
+    runtime: result.entry.compatibilityFallbackUsed
+      ? 'O YouTube foi degradado para compatibility nesta tentativa para estabilizar a reproducao.'
+      : null,
+  };
+}
+
+function formatTrackSourceLabel(
+  provider: string,
+  routeKind: 'native' | 'bridge' | 'unknown',
+) {
+  if (provider === 'youtube') {
+    return 'YouTube';
+  }
+
+  if (provider === 'spotify') {
+    return routeKind === 'bridge' ? 'Spotify (bridge)' : 'Spotify';
+  }
+
+  if (provider === 'soundcloud') {
+    return routeKind === 'bridge' ? 'SoundCloud (fallback interno)' : 'SoundCloud';
+  }
+
+  return null;
 }
 
 function resolveLoopModeLabel(repeatMode: QueueRepeatMode) {

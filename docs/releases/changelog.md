@@ -1,12 +1,24 @@
 # PHONIX Changelog
 
-## Unreleased - Repository Exposure Hardening
+## `v2.2.0` - Signal Surfaces
 
+- A superficie Discord entrou em uma linha nova e publica de UX visual: `play`, `queue`, `nowplaying`, `config view` e `doctor` agora usam `Components V2` com `Container`, `Section`, `TextDisplay`, `MediaGallery`, `Separator` e `IS_COMPONENTS_V2` quando isso realmente melhora leitura e hierarquia.
+- A estrategia visual passou a ser hibrida e explicitamente intencional: `help`, notices curtos, biblioteca e fluxos transacionais compactos continuam em embeds/classic action rows porque essa ergonomia ainda e melhor para mensagens curtas e para navegacao interativa.
+- A identidade do bot dentro do Discord deixou de depender de emoji como linguagem principal: `theme.ts` agora centraliza assets oficiais do PHONIX para author/footer/media branding e reforca consistencia entre success, info, warning e error.
+- O `play` em slash parou de publicar um painel temporario de busca; ele agora usa o estado nativo de defer do Discord e fecha a resposta final em `Components V2`, o que evita mistura errada entre payload classico e V2.
+- `queue` e `nowplaying` ganharam hierarquia visual mais forte e mais limpa, com artwork principal, blocos operacionais curtos, contexto de sessao, recovery, source e proximo passo no mesmo painel.
+- `config view` e `doctor` passaram a se comportar como paineis operacionais premium em vez de dumps lineares de embed, mantendo leitura escaneavel em desktop e mobile.
+- A documentacao foi alinhada para a nova linha `v2.2.0`, registrando a adocao seletiva de `Components V2`, o que ficou classico por escolha tecnica e as restricoes oficiais do Discord que dirigiram essa decisao.
 - A documentacao foi reorganizada por responsabilidade em `docs/architecture`, `docs/operations`, `docs/verification`, `docs/releases` e `docs/governance`, sem perder o conteudo historico dos runbooks e da arquitetura.
 - O repositorio ganhou padroes publicos reais em `.github/`, com CI reforcado, issue templates, PR template e `CODEOWNERS`.
 - O projeto ganhou `SECURITY.md`, `.editorconfig` e um `.gitignore` mais seguro para exposicao publica, reduzindo risco de ruido local e vazamento acidental de artefatos de ambiente.
 - `README.md`, metadados do `package.json`, LICENSE, CONTRIBUTING e a politica de releases foram alinhados para exposicao publica do projeto sem inventar comportamento novo de produto.
 - A governanca do repositorio agora deixa explicito que atualizar o bot sem sincronizar documentacao e estado publico do repositorio e trabalho incompleto.
+- O fluxo final do `play` ficou mais auditavel: o resultado agora deixa explicito se o PHONIX precisou preparar a conexao de voz, se a sessao ativa foi reaproveitada e se o start real do playback foi confirmado antes da resposta.
+- `nowplaying`, `queue` e o resultado do `play` agora usam melhor a metadata de midia disponivel, com artwork/capa, link direto da faixa e origem resumida quando esse contexto existe no runtime.
+- O runtime de comandos ficou mais resiliente a expiracao de slash interactions: quando a janela de resposta do Discord ja fechou, o PHONIX aborta a resposta com log controlado em vez de derrubar o processo com `Unknown interaction`.
+- O registrador de eventos do cliente agora envolve `InteractionCreate` e `MessageCreate` com tratamento explicito de falhas, impedindo que erros tardios de resposta ou fetch derrubem o bot inteiro.
+- O ciclo de recovery e playback tambem ficou mais robusto contra corrida de fila: descarte de queue agora e idempotente, ignora `ERR_NO_GUILD_QUEUE` quando a fila ja sumiu do `discord-player` e reduz warning duplicado quando o recovery automatico ja esgotou tentativas de forma esperada.
 
 ## `v2.1.0` - Smart Session
 

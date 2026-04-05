@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { handleHelpComponentInteraction } from '../../src/modules/commands/helpComponents.js';
 import { presentHelpResult } from '../../src/modules/commands/presenters.js';
 import type { HelpPageId, HelpResultView } from '../../src/modules/ui/view-models.js';
+import { renderDiscordValue, renderEmbed } from '../support/discordPayload.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
 
 describe('help presentation and components', () => {
@@ -11,9 +12,10 @@ describe('help presentation and components', () => {
 
     expect(payload.embeds).toHaveLength(1);
     expect(payload.components).toHaveLength(2);
-    expect(payload.embeds?.[0]?.data.title).toBe('PHONIX | Comece por aqui');
+    expect(renderEmbed(payload.embeds?.[0])?.title).toBe('PHONIX | Comece por aqui');
 
-    const componentRows = payload.components?.map((row) => row.toJSON()) ?? [];
+    const componentRows =
+      payload.components?.map((row) => renderDiscordValue<{ components?: unknown[] }>(row as never) ?? {}) ?? [];
     expect(componentRows[0]?.components).toHaveLength(1);
     expect(componentRows[1]?.components).toHaveLength(2);
   });

@@ -2,7 +2,7 @@
 
 ## Contexto da `v2.x`
 
-Na `v2.x`, o PHONIX ganhou um `Admin Center` web, mas esta verificacao continua sendo centrada no bot Discord. O dashboard ajuda a inspecionar `doctor`, config e estado da sessao, porem a comparacao A/B de playback ainda deve ser validada dentro de canais de voz reais no Discord. Na `v2.1.0`, o `doctor` tambem passou a mostrar `session health`, o que ajuda a diferenciar recovery saudavel, parcial ou quebrado antes da rodada manual.
+Na `v2.x`, o PHONIX ganhou um `Admin Center` web, mas esta verificacao continua sendo centrada no bot Discord. O dashboard ajuda a inspecionar `doctor`, config e estado da sessao, porem a comparacao A/B de playback ainda deve ser validada dentro de canais de voz reais no Discord. Na `v2.2.0`, `play`, `queue`, `nowplaying`, `config view` e `doctor` passam a usar `Components V2` de forma seletiva, e o `doctor` continua mostrando `session health`, o que ajuda a diferenciar recovery saudavel, parcial ou quebrado antes da rodada manual.
 
 ## Objetivo
 
@@ -21,6 +21,8 @@ O foco desta fase e validar:
 - quantidade de stutters
 - coerencia entre perfil solicitado e perfil efetivo
 - leitura correta do `doctor`
+- clareza do resultado final de `/play` entre `tocando agora` e `aguardando na fila`
+- painel visual de `nowplaying` com artwork/capa e origem coerente com a faixa atual
 
 ## Artefatos desta fase
 
@@ -104,6 +106,8 @@ Dentro do Discord:
    - falhas de stream
    - recoveries
    - diferenca audivel percebida
+   - se o resultado do `/play` explicou claramente entrada na call, reaproveitamento de sessao ou fila
+   - se o painel de `nowplaying` mostrou thumbnail/capa, origem e link de forma coerente
 
 ### Rodada B - `fidelity`
 
@@ -128,6 +132,8 @@ Dentro do Discord:
    - falhas de stream
    - recoveries
    - diferenca audivel percebida
+   - se o resultado do `/play` continuou claro mesmo com downgrade ou bloqueio de pipeline
+   - se o painel de `nowplaying` manteve artwork/capa e origem coerentes no perfil efetivo
 
 ## Planilha de resultado sugerida
 

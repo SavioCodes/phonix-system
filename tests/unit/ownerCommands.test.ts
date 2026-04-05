@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ownerCommands } from '../../src/modules/commands/ownerCommands.js';
+import { renderEmbed } from '../support/discordPayload.js';
 
 const ownerCommand = ownerCommands[0];
 
@@ -55,6 +56,6 @@ describe('owner command', () => {
       client: { id: 'client-1' },
       requesterId: '976586934455513159',
     });
-    expect(payload?.embeds?.[0]?.data.title).toBe('PHONIX | Owner status');
+    expect(renderEmbed(payload?.embeds?.[0])?.title).toBe('PHONIX | Owner status');
   });
 });

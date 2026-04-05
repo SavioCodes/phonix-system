@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { libraryCommands } from '../../src/modules/commands/libraryCommands.js';
+import { renderEmbed } from '../support/discordPayload.js';
 
 const favoriteCommand = libraryCommands.find((command) => command.name === 'favorite');
 const playlistCommand = libraryCommands.find((command) => command.name === 'playlist');
@@ -75,9 +76,9 @@ describe('library commands', () => {
       { subcommand: 'create', name: '  mix phonk  ' } as never,
     );
 
-    const embed = payload?.embeds?.[0];
-    expect(embed?.data?.description).toContain('**mix phonk**');
-    expect(embed?.data?.description).not.toContain('**  mix phonk  **');
+    const embed = renderEmbed(payload?.embeds?.[0]);
+    expect(embed?.description).toContain('**mix phonk**');
+    expect(embed?.description).not.toContain('**  mix phonk  **');
     expect(playlistCreate).toHaveBeenCalledWith({
       guildId: 'guild-1',
       user: { id: 'user-1' },

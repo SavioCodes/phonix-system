@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { configCommands } from '../../src/modules/commands/configCommands.js';
 import { playbackCommands } from '../../src/modules/commands/playbackCommands.js';
+import { renderEmbed } from '../support/discordPayload.js';
 
 const recoverCommand = playbackCommands.find((command) => command.name === 'recover');
 const configCommand = configCommands.find((command) => command.name === 'config');
@@ -101,7 +102,7 @@ describe('recovery-related commands', () => {
       } as never,
     );
 
-    expect(payload?.embeds?.[0]?.data?.description).toContain('persistencia de fila foi ativada');
+    expect(renderEmbed(payload?.embeds?.[0])?.description).toContain('persistencia de fila foi ativada');
     expect(setResumeQueue).toHaveBeenCalledWith({
       guildId: 'guild-1',
       member: {

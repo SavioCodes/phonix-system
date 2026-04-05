@@ -410,6 +410,12 @@ describe('music service node options', () => {
       },
       startedPlayback: true,
       mode: 'queue',
+      entry: {
+        preparedVoiceConnection: true,
+        reusedActiveQueue: false,
+        awaitedPlaybackStart: true,
+        compatibilityFallbackUsed: false,
+      },
     });
   });
 
@@ -732,6 +738,7 @@ describe('music service node options', () => {
     expect(service.describePlaybackRoutes().youtube.pipeline).toBe('youtube-dl');
     expect(service.describePlaybackRoutes().youtube.downgradeReason).toContain('Runtime degradado para compatibility');
     expect(result.pipeline).toBe('youtube-dl');
+    expect(result.entry.compatibilityFallbackUsed).toBe(true);
   });
 
   it('downgrades the runtime during startup stabilization when the native youtubei probe fails', async () => {
@@ -1498,6 +1505,12 @@ describe('music service node options', () => {
     expect(result.mode).toBe('next');
     expect(result.queuePosition).toBe(1);
     expect(result.estimatedWait).toBe('2:30');
+    expect(result.entry).toMatchObject({
+      preparedVoiceConnection: true,
+      reusedActiveQueue: true,
+      awaitedPlaybackStart: false,
+      compatibilityFallbackUsed: false,
+    });
   });
 
   it('searches before replacing the queue so failed searches do not destroy the current session', async () => {

@@ -1,3 +1,4 @@
+import { MessageFlags } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { playbackCommands } from '../../src/modules/commands/playbackCommands.js';
 
@@ -54,6 +55,25 @@ describe('play command', () => {
     expect(signalTyping).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps slash play on the native deferred state instead of posting a temporary loading panel', async () => {
+    const reply = vi.fn().mockResolvedValue(undefined);
+
+    await playCommand?.prepare?.(
+      {
+        source: 'slash',
+        reply,
+        signalTyping: vi.fn(),
+      } as never,
+      {
+        query: 'night drive',
+        mode: 'queue',
+        source: 'auto',
+      } as never,
+    );
+
+    expect(reply).not.toHaveBeenCalled();
+  });
+
   it('delegates slash args including mode and source to the playback use case', async () => {
     const play = vi.fn().mockResolvedValue({
       kind: 'play',
@@ -64,6 +84,8 @@ describe('play command', () => {
         author: 'Aria',
         duration: '3:50',
         thumbnail: 'https://example.com/thumb.png',
+        url: 'https://open.spotify.com/track/neon-skyline',
+        sourceLabel: 'Spotify (bridge)',
       },
       resultType: 'track',
       mode: 'replace',
@@ -76,6 +98,12 @@ describe('play command', () => {
       estimatedWait: null,
       voiceChannelName: 'Synth Room',
       autoplayEnabled: false,
+      entry: {
+        connection: 'A conexao de voz precisou ser preparada nesta solicitacao.',
+        session: 'A busca atual substituiu a fila anterior e virou a nova base da sessao.',
+        startup: 'O PHONIX aguardou o start real da faixa antes de responder.',
+        runtime: null,
+      },
       hint: 'Use /queue para conferir a nova fila.',
     });
 
@@ -111,7 +139,18 @@ describe('play command', () => {
       source: 'spotify',
       sourceContext: 'slash',
     });
-    expect(payload?.embeds?.[0]?.data?.title).toBe('PHONIX | Fila substituida');
+    expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
+    expect(payload?.embeds).toBeUndefined();
+    expect(payload?.components?.length).toBe(1);
+    const rendered = payload?.components?.[0];
+    expect(rendered && 'toJSON' in rendered ? rendered.toJSON() : rendered).toMatchObject({
+      accent_color: expect.any(Number),
+      components: expect.arrayContaining([
+        expect.objectContaining({
+          content: expect.stringContaining('PHONIX | Fila substituida'),
+        }),
+      ]),
+    });
   });
 
   it('makes Spotify bridge explicit in the slash command source option', () => {

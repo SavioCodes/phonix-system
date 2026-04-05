@@ -1,3 +1,4 @@
+import { MessageFlags } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import { configCommands } from '../../src/modules/commands/configCommands.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
@@ -46,7 +47,15 @@ describe('config command', () => {
       { subcommand: 'view' } as never,
     );
 
-    expect(payload?.embeds?.[0]?.data.title).toBe('PHONIX | Configuracoes do servidor');
+    expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
+    const rendered = payload?.components?.[0];
+    expect(rendered && 'toJSON' in rendered ? rendered.toJSON() : rendered).toMatchObject({
+      components: expect.arrayContaining([
+        expect.objectContaining({
+          content: expect.stringContaining('PHONIX | Configuracoes do servidor'),
+        }),
+      ]),
+    });
   });
 
   it('returns a guided error when the toggle value is invalid', () => {

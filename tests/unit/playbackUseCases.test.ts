@@ -3,6 +3,13 @@ import { QueueRepeatMode } from 'discord-player';
 import { createPlaybackUseCases } from '../../src/modules/music/use-cases/playbackUseCases.js';
 import { createSessionDiagnostics } from '../support/sessionDiagnostics.js';
 
+const basePlaybackEntry = {
+  connection: 'A conexao de voz precisou ser preparada nesta solicitacao.',
+  session: 'Esta entrada iniciou a sessao atual do PHONIX neste canal.',
+  startup: 'O PHONIX aguardou o start real da faixa antes de responder.',
+  runtime: null,
+} as const;
+
 describe('playback use cases', () => {
   it('play returns a dedicated play result when playback starts immediately', async () => {
     const ensurePlayableVoiceChannel = vi.fn().mockResolvedValue({ id: 'voice-1' });
@@ -22,6 +29,12 @@ describe('playback use cases', () => {
       provider: 'youtube',
       pipeline: 'youtube-dl',
       routeKind: 'native',
+      entry: {
+        preparedVoiceConnection: true,
+        reusedActiveQueue: false,
+        awaitedPlaybackStart: true,
+        compatibilityFallbackUsed: false,
+      },
       queue: {
         channel: {
           id: 'voice-1',
@@ -32,6 +45,7 @@ describe('playback use cases', () => {
         author: 'Synthwave',
         duration: '3:45',
         thumbnail: 'thumb.png',
+        url: 'https://youtube.com/watch?v=night-drive',
       },
     });
     const recordPlaybackSignal = vi.fn();
@@ -74,6 +88,9 @@ describe('playback use cases', () => {
     expect(result.startedPlayback).toBe(true);
     expect(result.voiceChannelName).toBe('Lofi Room');
     expect(result.hint).toContain('/queue');
+    expect(result.track.url).toBe('https://youtube.com/watch?v=night-drive');
+    expect(result.track.sourceLabel).toBe('YouTube');
+    expect(result.entry).toEqual(basePlaybackEntry);
     expect(recordPlaybackSignal).toHaveBeenCalledWith(
       expect.objectContaining({
         guildId: 'guild-1',
@@ -108,6 +125,12 @@ describe('playback use cases', () => {
       provider: 'youtube',
       pipeline: 'youtube-dl',
       routeKind: 'native',
+      entry: {
+        preparedVoiceConnection: false,
+        reusedActiveQueue: true,
+        awaitedPlaybackStart: false,
+        compatibilityFallbackUsed: false,
+      },
       queue: {
         channel: {
           id: 'voice-1',
@@ -118,6 +141,7 @@ describe('playback use cases', () => {
         author: 'Nova',
         duration: '4:00',
         thumbnail: 'thumb.png',
+        url: 'https://youtube.com/watch?v=orbit',
       },
     });
 
@@ -159,6 +183,9 @@ describe('playback use cases', () => {
     expect(result.estimatedWait).toBe('2:15');
     expect(result.source).toBe('YouTube');
     expect(result.autoplayEnabled).toBe(true);
+    expect(result.track.sourceLabel).toBe('YouTube');
+    expect(result.entry.connection).toContain('ja estava pronta');
+    expect(result.entry.session).toContain('logo depois da faixa atual');
   });
 
   it('play makes the Spotify bridge route explicit in the result view', async () => {
@@ -179,6 +206,12 @@ describe('playback use cases', () => {
       provider: 'spotify',
       pipeline: 'spotify-bridge',
       routeKind: 'bridge',
+      entry: {
+        preparedVoiceConnection: true,
+        reusedActiveQueue: false,
+        awaitedPlaybackStart: true,
+        compatibilityFallbackUsed: false,
+      },
       queue: {
         channel: {
           id: 'voice-1',
@@ -189,6 +222,7 @@ describe('playback use cases', () => {
         author: 'Metro',
         duration: '4:12',
         thumbnail: 'thumb.png',
+        url: 'https://open.spotify.com/track/after-dark',
       },
     });
 
@@ -229,6 +263,7 @@ describe('playback use cases', () => {
     expect(result.sourceRouteKind).toBe('bridge');
     expect(result.sourceDetail).toContain('bridge');
     expect(result.description).toContain('source original');
+    expect(result.track.sourceLabel).toBe('Spotify (bridge)');
   });
 
   it('recover restores the persisted session and returns a success notice', async () => {
@@ -405,6 +440,8 @@ describe('playback use cases', () => {
       { position: 2, title: 'Fila 2', duration: '4:05' },
     ]);
     expect(result.currentTrack?.title).toBe('Track atual');
+    expect(result.currentTrack?.url).toBe('https://youtube.com/watch?v=track-atual');
+    expect(result.currentTrack?.sourceLabel).toBe('YouTube');
     expect(result.currentProgressBar).toBe('[=====-----]');
     expect(result.voiceChannelName).toBe('Synth Room');
     expect(result.repeatModeLabel).toBe('autoplay');
@@ -486,6 +523,8 @@ describe('playback use cases', () => {
     }
 
     expect(result.track?.title).toBe('Track atual');
+    expect(result.track?.url).toBe('https://youtube.com/watch?v=track-atual');
+    expect(result.track?.sourceLabel).toBe('YouTube');
     expect(result.progressBar).toBe('[====------]');
     expect(result.nextTrack).toEqual({ position: 1, title: 'Fila 1', duration: '2:10' });
     expect(result.session.healthLabel).toBe('saudavel');

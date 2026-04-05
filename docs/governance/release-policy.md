@@ -10,24 +10,24 @@ PHONIX follows Semantic Versioning:
 
 ## Current public release line
 
-- `v2.1.0 - Smart Session`
+- `v2.2.0 - Signal Surfaces`
 
 ## Tagging strategy
 
-- Git tags should use the canonical version name: `v2.1.0`
+- Git tags should use the canonical version name: `v2.2.0`
 - Release titles should use: `v<semver> - <release name>`
 - Examples:
-  - `v2.1.0 - Smart Session`
-  - `v2.2.0 - Playback Intelligence`
-  - `v2.3.0 - Multi-Source Engine`
+  - `v2.2.0 - Signal Surfaces`
+  - `v2.3.0 - Playback Intelligence`
+  - `v2.4.0 - Multi-Source Engine`
 
 ## Named release roadmap
 
 These names are planning anchors for the public repository and not promises of completed implementation:
 
-- `v2.1.0 - Smart Session`: current public line
-- `v2.2.0 - Playback Intelligence`: `NAO IMPLEMENTADO AINDA`
-- `v2.3.0 - Multi-Source Engine`: `NAO IMPLEMENTADO AINDA`
+- `v2.2.0 - Signal Surfaces`: current public line
+- `v2.3.0 - Playback Intelligence`: `NAO IMPLEMENTADO AINDA`
+- `v2.4.0 - Multi-Source Engine`: `NAO IMPLEMENTADO AINDA`
 
 ## Release gates
 
@@ -68,6 +68,7 @@ Every release should keep these files aligned:
 Update operational runbooks whenever behavior changes in:
 
 - playback pipeline
+- Discord message surfaces, Components V2 strategy or visual hierarchy
 - recovery / session health
 - owner control
 - Admin Center authentication or authorization

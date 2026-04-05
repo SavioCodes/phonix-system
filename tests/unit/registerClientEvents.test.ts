@@ -133,7 +133,7 @@ describe('registerClientEvents', () => {
 
     expect(infoSpy).toHaveBeenCalledWith(
       {
-        appVersion: '2.1.0',
+        appVersion: '2.2.0',
         bot: 'PHONIX#6820',
         dashboardRequested: false,
         dashboardEnabled: false,
@@ -401,5 +401,120 @@ describe('registerClientEvents', () => {
       currentPage: 'playback',
     });
     expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs slash handler failures instead of letting the client crash', async () => {
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => logger);
+    const client = new EventEmitter();
+    const player = new EventEmitter() as EventEmitter & {
+      events: EventEmitter;
+      handleVoiceState: () => void;
+    };
+    player.events = new EventEmitter();
+    player.handleVoiceState = vi.fn();
+
+    registerClientEvents(client as never, {
+      player,
+      playbackSessionManager: {
+        recoverPersistedSessions: vi.fn().mockResolvedValue(undefined),
+      },
+      operationalTelemetry: {
+        recordFailure: vi.fn(),
+        recordPlaybackSignal: vi.fn(),
+      },
+      history: {
+        record: vi.fn(),
+      },
+      ffmpeg: {
+        available: true,
+        detail: 'ok',
+      },
+    } as never);
+
+    client.emit(Events.InteractionCreate, {
+      id: 'interaction-1',
+      commandName: 'play',
+      user: { id: 'user-1' },
+      guildId: 'guild-1',
+      inGuild: () => true,
+      isButton: () => false,
+      isStringSelectMenu: () => false,
+      isChatInputCommand: () => true,
+      guild: {
+        members: {
+          fetch: vi.fn().mockRejectedValue(new Error('member fetch failed')),
+        },
+      },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        interactionId: 'interaction-1',
+        commandName: 'play',
+        guildId: 'guild-1',
+        userId: 'user-1',
+        err: expect.any(Error),
+      }),
+      'Slash interaction handling failed',
+    );
+  });
+
+  it('downgrades expected automatic recovery exhaustion to debug level in runtime handlers', async () => {
+    const debugSpy = vi.spyOn(logger, 'debug').mockImplementation(() => logger);
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger);
+    const client = new EventEmitter();
+    const player = new EventEmitter() as EventEmitter & {
+      events: EventEmitter;
+      handleVoiceState: () => void;
+    };
+    player.events = new EventEmitter();
+    player.handleVoiceState = vi.fn();
+
+    registerClientEvents(client as never, {
+      player,
+      playbackSessionManager: {
+        handleRuntimeFault: vi.fn().mockRejectedValue(new Error('Recovery automatico abortado apos 2 tentativa(s) em 90s.')),
+      },
+      operationalTelemetry: {
+        recordFailure: vi.fn(),
+        recordPlaybackSignal: vi.fn(),
+      },
+      history: {
+        record: vi.fn(),
+      },
+      ffmpeg: {
+        available: true,
+        detail: 'ok',
+      },
+    } as never);
+
+    player.events.emit(GuildQueueEvent.ConnectionDestroyed, {
+      guild: { id: 'guild-recovery' },
+      channel: { id: 'voice-recovery' },
+      metadata: { textChannelId: 'text-recovery' },
+      currentTrack: {
+        url: 'https://www.youtube.com/watch?v=test',
+        raw: { source: 'youtube' },
+      },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        guildId: 'guild-recovery',
+        err: expect.any(Error),
+      }),
+      'Automatic recovery after connection destruction failed',
+    );
+    expect(warnSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        guildId: 'guild-recovery',
+        err: expect.any(Error),
+      }),
+      'Automatic recovery after connection destruction failed',
+    );
   });
 });
