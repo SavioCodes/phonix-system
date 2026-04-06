@@ -1,4 +1,4 @@
-  import {
+import {
   createCipheriv,
   createDecipheriv,
   createHmac,
@@ -7,11 +7,68 @@
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
-import type { DashboardSession, PrismaClient } from '@prisma/client';
 import type { DashboardSessionRecord } from '../contracts.js';
 
 export const DASHBOARD_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const DASHBOARD_SESSION_ENCRYPTION_SALT = 'phonix-dashboard-oauth';
+
+interface DashboardSessionModel {
+  id: string;
+  discordUserId: string;
+  username: string;
+  avatar: string | null;
+  authorizedGuildIdsJson: string;
+  csrfTokenHash: string;
+  oauthAccessTokenCiphertext: string | null;
+  oauthRefreshTokenCiphertext: string | null;
+  oauthTokenType: string | null;
+  oauthScope: string | null;
+  oauthExpiresAt: Date | null;
+  lastAuthorizedSyncAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface DashboardSessionCreateData {
+  id: string;
+  discordUserId: string;
+  username: string;
+  avatar: string | null;
+  authorizedGuildIdsJson: string;
+  csrfTokenHash: string;
+  oauthAccessTokenCiphertext: string | null;
+  oauthRefreshTokenCiphertext: string | null;
+  oauthTokenType: string;
+  oauthScope: string;
+  oauthExpiresAt: Date;
+  lastAuthorizedSyncAt: Date;
+  expiresAt: Date;
+}
+
+interface DashboardSessionUpdateData {
+  username?: string;
+  avatar?: string | null;
+  authorizedGuildIdsJson?: string;
+  oauthAccessTokenCiphertext?: string | null;
+  oauthRefreshTokenCiphertext?: string | null;
+  oauthTokenType?: string;
+  oauthScope?: string;
+  oauthExpiresAt?: Date;
+  lastAuthorizedSyncAt?: Date | null;
+  expiresAt?: Date;
+}
+
+interface DashboardSessionDelegate {
+  create(args: { data: DashboardSessionCreateData }): Promise<DashboardSessionModel>;
+  findUnique(args: { where: { id: string } }): Promise<DashboardSessionModel | null>;
+  update(args: { where: { id: string }; data: DashboardSessionUpdateData }): Promise<DashboardSessionModel>;
+  deleteMany(args: { where: { id?: string; expiresAt?: { lte: Date } } }): Promise<unknown>;
+}
+
+interface DashboardSessionPrisma {
+  dashboardSession: DashboardSessionDelegate;
+}
 
 export interface DashboardSessionOAuthTokenSet {
   accessToken: string;
@@ -45,7 +102,7 @@ export class DashboardSessionsService {
   private readonly encryptionKey: Buffer;
 
   public constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: DashboardSessionPrisma,
     private readonly sessionSecret: string,
   ) {
     this.encryptionKey = scryptSync(sessionSecret, DASHBOARD_SESSION_ENCRYPTION_SALT, 32);
@@ -164,7 +221,7 @@ export class DashboardSessionsService {
   }
 }
 
-function mapDashboardSession(session: DashboardSession, encryptionKey: Buffer): DashboardSessionRecord {
+function mapDashboardSession(session: DashboardSessionModel, encryptionKey: Buffer): DashboardSessionRecord {
   return {
     id: session.id,
     discordUserId: session.discordUserId,

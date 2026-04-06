@@ -19,7 +19,6 @@ import {
   type StageChannel,
   type VoiceChannel,
 } from 'discord.js';
-import { Log as YoutubeJsLog } from 'youtubei.js';
 import { logger } from '../../core/logging/logger.js';
 import { restoreTrack, type StoredTrack } from './trackCodec.js';
 import type { AppConfig, YouTubeConfig, YouTubePlaybackProfile, YouTubeStreamClient } from '../../core/config/env.js';
@@ -246,7 +245,7 @@ export class MusicService {
   ) {}
 
   public async setupExtractors() {
-    YoutubeJsLog.setLevel(YoutubeJsLog.Level.ERROR);
+    await configureYoutubeJsLogging();
     const youtubeProfile = this.getActiveYouTubeProfile();
 
     const curatedDefaultExtractors = DefaultExtractors.filter(
@@ -1471,6 +1470,25 @@ function formatRuntimeProbeError(error: unknown) {
   }
 
   return String(error);
+}
+
+async function configureYoutubeJsLogging() {
+  try {
+    const youtubeJsModule = (await import('youtubei.js')) as Record<string, unknown>;
+    const youtubeJsLog = youtubeJsModule['Log'] as
+      | {
+          Level?: { ERROR?: number };
+          setLevel?: (...args: number[]) => void;
+        }
+      | undefined;
+
+    const errorLevel = youtubeJsLog?.Level?.ERROR;
+    if (typeof errorLevel === 'number') {
+      youtubeJsLog?.setLevel?.(errorLevel);
+    }
+  } catch {
+    // Keep the extractor-level silence even if the package logging surface changes.
+  }
 }
 
 function hasQueuedTracks(queue: Pick<GuildQueue<QueueMetadata>, 'currentTrack' | 'size'>) {
