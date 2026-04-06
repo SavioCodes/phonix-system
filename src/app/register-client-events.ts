@@ -2,6 +2,7 @@ import { GuildQueueEvent, PlayerEvent, type Track } from 'discord-player';
 import { Client, Events } from 'discord.js';
 import type { CommandServices } from '../modules/commands/framework.js';
 import { handleHelpComponentInteraction } from '../modules/commands/helpComponents.js';
+import { handlePanelComponentInteraction } from '../modules/commands/panelInteractions.js';
 import { handlePrefixMessage, handleSlashInteraction } from '../modules/commands/registry.js';
 import { resolveDashboardConfig } from '../core/config/env.js';
 import { PHONIX_OWNER_USER_ID } from '../core/security/ownerAccess.js';
@@ -78,6 +79,13 @@ export function registerClientEvents(client: Client, services: CommandServices) 
   client.on(Events.InteractionCreate, async (interaction) => {
     try {
       if (interaction.isButton() || interaction.isStringSelectMenu()) {
+        if (interaction.isButton()) {
+          const panelHandled = await handlePanelComponentInteraction(interaction, services);
+          if (panelHandled) {
+            return;
+          }
+        }
+
         const handled = await handleHelpComponentInteraction(interaction, services);
         if (handled) {
           return;

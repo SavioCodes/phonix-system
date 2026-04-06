@@ -108,7 +108,7 @@ function createService(overrides: {
 } = {}) {
   return new OwnerControlService({
     config: {
-      appVersion: '2.2.0',
+      appVersion: '2.3.0',
       discordToken: 'token',
       discordClientId: 'client-1',
       databaseUrl: 'file:./data/test.db',

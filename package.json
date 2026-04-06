@@ -1,6 +1,6 @@
 {
   "name": "phonix-bot",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Production Discord music bot with guild session recovery, diagnostics, owner control, and an opt-in Admin Center.",
   "private": true,
   "main": "dist/index.js",

@@ -10,6 +10,11 @@ export interface TrackCardView {
   sourceLabel?: string | null;
 }
 
+export interface PanelNavigationView {
+  guildId: string;
+  userId: string;
+}
+
 export interface QueueEntryView {
   position: number;
   title: string;
@@ -45,6 +50,7 @@ export interface RecoverView {
   variant: 'success' | 'warning';
   title: string;
   description: string;
+  navigation?: PanelNavigationView;
   track: TrackCardView | null;
   summaryLines: string[];
   settingsLines: string[];
@@ -61,10 +67,21 @@ export interface CollectionEntryView {
   url: string | null;
 }
 
+export type CollectionPanelSurface = 'favorites' | 'playlists' | 'playlist' | 'history';
+
+export interface CollectionPanelView {
+  surface: CollectionPanelSurface;
+  guildId: string;
+  userId: string;
+  contextId: string | null;
+  hasLeadAction: boolean;
+}
+
 export interface CollectionView {
   kind: 'collection';
   title: string;
   description: string;
+  panel?: CollectionPanelView;
   collectionTitle: string;
   leadTrack: TrackCardView | null;
   entries: CollectionEntryView[];
@@ -84,6 +101,7 @@ export interface PlayResultView {
   kind: 'play';
   title: string;
   description: string;
+  navigation?: PanelNavigationView;
   track: TrackCardView;
   resultType: 'track' | 'playlist';
   mode: PlayMode;
@@ -124,12 +142,14 @@ export interface QueueView {
   kind: 'queue';
   title: string;
   description: string;
+  navigation?: PanelNavigationView;
   currentTrack: TrackCardView | null;
   currentProgressBar: string | null;
   upcomingTracks: QueueEntryView[];
   size: number;
   durationFormatted: string;
   hiddenTrackCount: number;
+  playbackStateLabel?: string;
   volume: number;
   voiceChannelName: string | null;
   repeatModeLabel: string;
@@ -141,8 +161,10 @@ export interface NowPlayingView {
   kind: 'nowPlaying';
   title: string;
   description: string;
+  navigation?: PanelNavigationView;
   track: TrackCardView | null;
   progressBar: string | null;
+  playbackStateLabel?: string;
   volume: number;
   voiceChannelName: string | null;
   queueSize: number;
@@ -170,6 +192,7 @@ export interface GuildSettingsView {
 }
 
 export interface GuildConfigResult {
+  navigation?: PanelNavigationView;
   settings: GuildSettingsView;
   sessionDiagnostics: PlaybackSessionDiagnostics;
   liveVolume: number | null;
@@ -210,4 +233,6 @@ export interface HelpNavigationView {
   prefix: string;
 }
 
-export type DoctorResultView = DoctorReport;
+export interface DoctorResultView extends DoctorReport {
+  navigation?: PanelNavigationView;
+}

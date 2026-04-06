@@ -66,8 +66,29 @@ export class PlaylistsService {
     });
   }
 
+  public async getById(userId: string, id: string): Promise<Playlist | null> {
+    return this.prisma.playlist.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+  }
+
   public async listItems(userId: string, name: string): Promise<PlaylistItem[] | null> {
     const playlist = await this.getByName(userId, name);
+    if (!playlist) {
+      return null;
+    }
+
+    return this.prisma.playlistItem.findMany({
+      where: { playlistId: playlist.id },
+      orderBy: { position: 'asc' },
+    });
+  }
+
+  public async listItemsById(userId: string, id: string): Promise<PlaylistItem[] | null> {
+    const playlist = await this.getById(userId, id);
     if (!playlist) {
       return null;
     }

@@ -234,7 +234,7 @@ describe('embed factory', () => {
   it('creates doctor report embeds', () => {
     const embed = embeds
       .doctor({
-        appVersion: '2.2.0',
+        appVersion: '2.3.0',
         overallStatus: 'warning',
         slashScope: 'global',
         dashboard: {
@@ -266,7 +266,7 @@ describe('embed factory', () => {
       .toJSON();
 
     expect(embed.title).toBe('PHONIX | Diagnostico do sistema');
-    expect(embed.description).toContain('v2.2.0');
+    expect(embed.description).toContain('v2.3.0');
     expect(embed.description).toContain('solicitado, mas indisponivel');
     expect(embed.fields?.some((field) => field.name === 'Runtime e deploy')).toBe(true);
     expect(embed.fields?.some((field) => field.name === 'Avisos ativos')).toBe(true);

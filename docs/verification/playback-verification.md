@@ -2,7 +2,7 @@
 
 ## Contexto da `v2.x`
 
-Na `v2.x`, o PHONIX ganhou um `Admin Center` web, mas esta verificacao continua sendo centrada no bot Discord. O dashboard ajuda a inspecionar `doctor`, config e estado da sessao, porem a comparacao A/B de playback ainda deve ser validada dentro de canais de voz reais no Discord. Na `v2.2.0`, `play`, `queue`, `nowplaying`, `config view` e `doctor` passam a usar `Components V2` de forma seletiva, e o `doctor` continua mostrando `session health`, o que ajuda a diferenciar recovery saudavel, parcial ou quebrado antes da rodada manual.
+Na `v2.x`, o PHONIX ganhou um `Admin Center` web, mas esta verificacao continua sendo centrada no bot Discord. O dashboard ajuda a inspecionar `doctor`, config e estado da sessao, porem a comparacao A/B de playback ainda deve ser validada dentro de canais de voz reais no Discord. Na `v2.3.0`, `play`, `queue`, `nowplaying`, `recover`, `config view` e `doctor` passam a funcionar como superficies hibridas: continuam densas em `Components V2`, mas agora aceitam acoes rapidas no mesmo painel quando isso reduz atrito sem poluir o chat.
 
 ## Objetivo
 
@@ -23,6 +23,7 @@ O foco desta fase e validar:
 - leitura correta do `doctor`
 - clareza do resultado final de `/play` entre `tocando agora` e `aguardando na fila`
 - painel visual de `nowplaying` com artwork/capa e origem coerente com a faixa atual
+- acoes em-place de `queue`, `nowplaying`, `recover`, `config` e `doctor`, confirmando que o painel atualiza no mesmo lugar sem duplicidade de mensagens
 - painel visual de `recover` com contagem coerente de restauradas/puladas e leitura real de session health
 - paineis de biblioteca (`favorite list`, `playlist list`, `history`) com boa escaneabilidade, sem poluicao visual e com artwork quando a metadata existir
 
@@ -115,6 +116,10 @@ Dentro do Discord:
    - `/favorite list`
    - `/playlist list`
    - `/history`
+   - botoes de `queue`, validando `Atualizar`, `Now Playing` e `Embaralhar`
+   - botoes de `nowplaying`, validando `Atualizar`, `Fila ativa` e `Pausar/Retomar`
+   - botoes de `recover`, validando navegacao para `queue`, `nowplaying` e `doctor`
+   - botoes de `config` e `doctor`, validando refresh in-place e saltos entre paineis administrativos
 7. Registre se os paineis continuaram legiveis tanto em desktop quanto em mobile.
 
 ### Rodada B - `fidelity`
@@ -147,7 +152,13 @@ Dentro do Discord:
    - `/favorite list`
    - `/playlist list`
    - `/history`
+   - interacoes rapidas dos paineis acionaveis, confirmando que o Discord atualiza o mesmo painel sem reabrir uma nova mensagem
+   - botoes de destaque da library, confirmando se `favorite list`, `playlist list` e `history` ajudam de verdade sem esconder os fluxos explicitos por nome/indice
 7. Registre tambem se a densidade visual continua boa em desktop e mobile quando `session health` estiver parcial ou quando `fidelity` cair para `compatibility`.
+
+Observacao operacional:
+
+- esta rodada exige uma sessao Discord autenticada no cliente real; sem login valido, a automacao so consegue confirmar contrato e navegacao estrutural, nao a ergonomia final no Discord.
 
 ## Planilha de resultado sugerida
 

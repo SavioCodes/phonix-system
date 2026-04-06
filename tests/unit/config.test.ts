@@ -14,7 +14,7 @@ describe('config parser', () => {
     expect(config.youtube?.profile).toBe('compatibility');
     expect(config.youtube?.streamClient).toBeUndefined();
     expect(config.youtube?.highWaterMark).toBeUndefined();
-    expect(config.appVersion).toBe('2.2.0');
+    expect(config.appVersion).toBe('2.3.0');
     expect(config.dashboard?.enabled).toBe(false);
     expect(config.dashboard?.port).toBe(3000);
   });

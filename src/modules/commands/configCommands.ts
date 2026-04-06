@@ -102,6 +102,7 @@ const configCommand: CommandDefinition<ConfigArgs> = {
         return presentGuildConfigResult(
           await context.services.useCases.admin.configView({
             guildId: context.guild.id,
+            userId: context.user.id,
             liveVolume: context.queue?.node.volume ?? null,
           }),
         );

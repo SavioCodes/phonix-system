@@ -59,6 +59,12 @@ interface PlaylistListInput extends LibraryBaseInput {
   name?: string;
 }
 
+interface LibraryCollectionInput extends LibraryBaseInput {}
+
+interface PlaylistByIdInput extends LibraryBaseInput {
+  playlistId: string;
+}
+
 export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
   return {
     async favoriteAdd(input: FavoriteAddInput): Promise<LibraryMutationResult> {
@@ -112,8 +118,8 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       });
     },
 
-    async favoriteList(userId: string): Promise<LibraryMutationResult> {
-      const favorites = await deps.favorites.list(userId);
+    async favoriteList(input: LibraryCollectionInput): Promise<LibraryMutationResult> {
+      const favorites = await deps.favorites.list(input.user.id);
       const visibleFavorites = favorites.slice(0, 10);
       return collectionView({
         title: 'PHONIX | Seus favoritos',
@@ -121,6 +127,13 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
           favorites.length > 0
             ? `Voce tem **${favorites.length}** favorito(s) salvo(s) prontos para tocar de novo com indice rapido.`
             : 'Voce ainda nao salvou favoritos. Use `/favorite add` com a faixa atual ou informe uma busca/URL para montar sua biblioteca.',
+        panel: {
+          surface: 'favorites',
+          guildId: input.guildId,
+          userId: input.user.id,
+          contextId: null,
+          hasLeadAction: visibleFavorites.length > 0,
+        },
         collectionTitle: 'Favoritos salvos',
         leadTrack: visibleFavorites[0]
           ? toTrackCardView(visibleFavorites[0], {
@@ -155,6 +168,52 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
             ? 'Use `/favorite play index:1` ou `!favorite play 1` para tocar um favorito salvo.'
             : 'Comece com `/favorite add` usando a musica atual ou uma busca direta.',
       });
+    },
+
+    async favoritePlayLead(input: LibraryCollectionInput): Promise<LibraryMutationResult> {
+      ensureAudioPlaybackAvailable(deps.ffmpeg);
+      const favorite = await deps.favorites.getByIndex(input.user.id, 1);
+      if (!favorite) {
+        throw new ValidationCommandError('Voce ainda nao tem favoritos salvos para acionar pelo painel. Use `/favorite add` para criar seu primeiro atalho.', {
+          title: 'Favoritos vazios',
+        });
+      }
+
+      const voiceChannel = await deps.music.ensurePlayableVoiceChannel(input.member);
+      const result = await deps.music.playStoredTracks(
+        voiceChannel,
+        [favoriteRecordToStoredTrack(favorite)],
+        input.user,
+        input.metadata,
+      );
+      const startedPlayback = result.queue.currentTrack?.url === result.track.url;
+
+      return trackResult(
+        startedPlayback ? 'PHONIX | Favorito em destaque tocando agora' : 'PHONIX | Favorito em destaque enviado para a fila',
+        result.track,
+        startedPlayback
+          ? 'O favorito em destaque do seu painel entrou no ar agora e reaproveitou a sessao atual.'
+          : 'O favorito em destaque do seu painel entrou na fila atual sem interromper a faixa que ja estava tocando.',
+        {
+          fields: [
+            {
+              name: 'Atalho do painel',
+              value: `Favorito em destaque: **${favorite.title}**`,
+              inline: true,
+            },
+            {
+              name: 'Entrada na sessao',
+              value: startedPlayback
+                ? 'Assumiu a sessao atual agora.'
+                : 'Entrou na fila atual para tocar em seguida.',
+              inline: true,
+            },
+          ],
+          hint: startedPlayback
+            ? 'Use `/nowplaying` para acompanhar a sessao ou `/favorite list` para revisar os outros atalhos salvos.'
+            : 'Use `/queue` para revisar a ordem ou `/skip` se quiser ir direto para o favorito em destaque.',
+        },
+      );
     },
 
     async favoritePlay(input: FavoriteIndexInput): Promise<LibraryMutationResult> {
@@ -288,6 +347,13 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
             playlists.length > 0
               ? `Voce tem **${playlists.length}** playlist(s) pessoal(is) salva(s) no PHONIX.`
               : 'Voce ainda nao criou playlists. Use `/playlist create` para montar sua primeira lista.',
+          panel: {
+            surface: 'playlists',
+            guildId: input.guildId,
+            userId: input.user.id,
+            contextId: visiblePlaylists[0]?.id ?? null,
+            hasLeadAction: visiblePlaylists.length > 0,
+          },
           collectionTitle: 'Playlists salvas',
           leadTrack: null,
           entries: visiblePlaylists.map((playlist, index) => ({
@@ -318,53 +384,24 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
         });
       }
 
-      const items = await deps.playlists.listItems(input.user.id, input.name);
-      if (!items) {
+      const playlist = await deps.playlists.getByName(input.user.id, input.name);
+      if (!playlist) {
         throw new ValidationCommandError('Playlist nao encontrada. Use `/playlist list` para conferir os nomes salvos.', {
           title: 'Playlist nao encontrada',
         });
       }
 
-      const visibleItems = items.slice(0, 10);
-      return collectionView({
-        title: `PHONIX | Playlist ${input.name.trim()}`,
-        description:
-          items.length > 0
-            ? `A playlist **${input.name.trim()}** tem **${items.length}** faixa(s) salva(s) e esta pronta para tocar.`
-            : 'Essa playlist ainda esta vazia. Use `/playlist add` com a faixa atual ou informe uma busca/URL.',
-        collectionTitle: 'Faixas salvas',
-        leadTrack: visibleItems[0]
-          ? toTrackCardView(visibleItems[0], {
-              sourceLabel: formatSourceLabel(visibleItems[0].source),
-            })
-          : null,
-        entries: visibleItems.map((item) =>
-          collectionEntry({
-            position: item.position,
-            title: item.title,
-            subtitle: item.author || 'Desconhecido',
-            duration: item.duration,
-            source: item.source,
-            url: item.url,
-          }),
-        ),
-        hiddenEntryCount: items.length - visibleItems.length,
-        summaryTitle: 'Leitura da playlist',
-        summaryLines: [
-          `Playlist alvo: **${input.name.trim()}**`,
-          `Faixas salvas: **${items.length}**`,
-          `Recorte visivel: **${visibleItems.length}**`,
-        ],
-        actionTitle: 'Como agir nesta playlist',
-        actionLines: [
-          `Toque tudo com \`/playlist play name:"${input.name.trim()}"\`.`,
-          `Remova um item com \`/playlist remove name:"${input.name.trim()}" index:x\`.`,
-        ],
-        hint:
-          items.length > 0
-            ? 'Use `/playlist play name:"' + input.name.trim() + '"` para iniciar essa playlist.'
-            : 'Use `/playlist add name:"' + input.name.trim() + '"` para guardar a faixa atual ou uma nova busca.',
+      return buildPlaylistCollectionView(deps, {
+        guildId: input.guildId,
+        user: input.user,
+        member: input.member,
+        metadata: input.metadata,
+        playlistId: playlist.id,
       });
+    },
+
+    async playlistListById(input: PlaylistByIdInput): Promise<LibraryMutationResult> {
+      return buildPlaylistCollectionView(deps, input);
     },
 
     async playlistPlay(input: PlaylistNamedInput): Promise<LibraryMutationResult> {
@@ -413,6 +450,10 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       );
     },
 
+    async playlistPlayById(input: PlaylistByIdInput): Promise<LibraryMutationResult> {
+      return playPlaylistById(deps, input);
+    },
+
     async playlistDelete(input: PlaylistNamedInput): Promise<NoticeView> {
       const removed = await deps.playlists.delete(input.user.id, input.name);
       if (!removed) {
@@ -433,8 +474,8 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
       });
     },
 
-    async history(userId: string): Promise<LibraryMutationResult> {
-      const items = await deps.history.list(userId);
+    async history(input: LibraryCollectionInput): Promise<LibraryMutationResult> {
+      const items = await deps.history.list(input.user.id);
       const visibleItems = items.slice(0, 10);
       return collectionView({
         title: 'PHONIX | Historico recente',
@@ -442,6 +483,13 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
           items.length > 0
             ? `Estas sao as ultimas **${items.length}** faixa(s) registradas no seu uso recente do PHONIX.`
             : 'Seu historico ainda esta vazio. Toque algo com `/play` e o PHONIX passa a registrar as ultimas faixas para voce.',
+        panel: {
+          surface: 'history',
+          guildId: input.guildId,
+          userId: input.user.id,
+          contextId: null,
+          hasLeadAction: visibleItems.length > 0,
+        },
         collectionTitle: 'Ultimas reproducoes',
         leadTrack: visibleItems[0]
           ? toTrackCardView(visibleItems[0], {
@@ -463,19 +511,67 @@ export function createLibraryUseCases(deps: LibraryUseCaseDeps) {
         summaryLines: [
           `Faixas registradas: **${items.length}**`,
           `Recorte visivel: **${visibleItems.length}**`,
-          'Reuso direto por indice: **nao implementado ainda**',
+          'Atalho rapido: **tocar o destaque ou repetir a busca manualmente**',
         ],
         actionTitle: 'Como reaproveitar',
         actionLines: [
+          'Use o botao de destaque para puxar a faixa mais recente direto para a sessao atual.',
           'Repita a busca manualmente com `/play nome-da-faixa`.',
           'Guarde o que gostar com `/favorite add query:nome-da-faixa`.',
           'Monte uma selecao com `/playlist add name:"nome" query:nome-da-faixa`.',
         ],
         hint:
           items.length > 0
-            ? 'O historico e uma memoria rapida de busca. Hoje ele nao toca por indice, entao use o titulo como base para `/play`, `/favorite add query:...` ou `/playlist add`.'
+            ? 'Voce pode usar o destaque do painel para tocar a faixa mais recente ou aproveitar o titulo como base para `/play`, `/favorite add query:...` ou `/playlist add`.'
             : 'Comece com `/play` ou `!tocar` para o PHONIX registrar seu uso.',
       });
+    },
+
+    async historyPlayLead(input: LibraryCollectionInput): Promise<LibraryMutationResult> {
+      ensureAudioPlaybackAvailable(deps.ffmpeg);
+      const items = await deps.history.list(input.user.id);
+      const track = items[0];
+      if (!track) {
+        throw new ValidationCommandError('Seu historico ainda esta vazio. Toque algo com `/play` antes de tentar reutilizar essa memoria rapida.', {
+          title: 'Historico vazio',
+        });
+      }
+
+      const voiceChannel = await deps.music.ensurePlayableVoiceChannel(input.member);
+      const result = await deps.music.play(
+        voiceChannel,
+        track.url,
+        input.user,
+        input.metadata,
+      );
+      const startedPlayback = result.startedPlayback;
+
+      return trackResult(
+        startedPlayback ? 'PHONIX | Historico reaproveitado agora' : 'PHONIX | Historico enviado para a fila',
+        result.track,
+        startedPlayback
+          ? 'A faixa mais recente do seu historico voltou a tocar agora e reaproveitou a sessao ativa do PHONIX.'
+          : 'A faixa mais recente do seu historico entrou na fila atual sem interromper o que ja estava tocando.',
+        {
+          fields: [
+            {
+              name: 'Atalho do historico',
+              value: `Faixa mais recente: **${track.title}**`,
+              inline: true,
+            },
+            {
+              name: 'Entrada na sessao',
+              value: startedPlayback
+                ? 'Assumiu a sessao atual agora.'
+                : 'Entrou na fila atual para tocar em seguida.',
+              inline: true,
+            },
+          ],
+          hint: startedPlayback
+            ? 'Use `/nowplaying` para revisar a sessao atual ou `/favorite add` se quiser transformar esse replay em atalho pessoal.'
+            : 'Use `/queue` para revisar a ordem ou `/skip` se quiser ir direto para a faixa retomada do historico.',
+        },
+      );
     },
   };
 }
@@ -566,6 +662,118 @@ function collectionEntry(input: {
     sourceLabel: formatSourceLabel(input.source),
     url: typeof input.url === 'string' && input.url.length > 0 ? input.url : null,
   };
+}
+
+async function buildPlaylistCollectionView(deps: LibraryUseCaseDeps, input: PlaylistByIdInput): Promise<LibraryMutationResult> {
+  const playlist = await deps.playlists.getById(input.user.id, input.playlistId);
+  if (!playlist) {
+    throw new ValidationCommandError('Playlist nao encontrada. Use `/playlist list` para conferir os nomes salvos.', {
+      title: 'Playlist nao encontrada',
+    });
+  }
+
+  const items = (await deps.playlists.listItemsById(input.user.id, input.playlistId)) ?? [];
+  const visibleItems = items.slice(0, 10);
+
+  return collectionView({
+    title: `PHONIX | Playlist ${playlist.name}`,
+    description:
+      items.length > 0
+        ? `A playlist **${playlist.name}** tem **${items.length}** faixa(s) salva(s) e esta pronta para tocar.`
+        : 'Essa playlist ainda esta vazia. Use `/playlist add` com a faixa atual ou informe uma busca/URL.',
+    panel: {
+      surface: 'playlist',
+      guildId: input.guildId,
+      userId: input.user.id,
+      contextId: playlist.id,
+      hasLeadAction: items.length > 0,
+    },
+    collectionTitle: 'Faixas salvas',
+    leadTrack: visibleItems[0]
+      ? toTrackCardView(visibleItems[0], {
+          sourceLabel: formatSourceLabel(visibleItems[0].source),
+        })
+      : null,
+    entries: visibleItems.map((item) =>
+      collectionEntry({
+        position: item.position,
+        title: item.title,
+        subtitle: item.author || 'Desconhecido',
+        duration: item.duration,
+        source: item.source,
+        url: item.url,
+      }),
+    ),
+    hiddenEntryCount: items.length - visibleItems.length,
+    summaryTitle: 'Leitura da playlist',
+    summaryLines: [
+      `Playlist alvo: **${playlist.name}**`,
+      `Faixas salvas: **${items.length}**`,
+      `Recorte visivel: **${visibleItems.length}**`,
+    ],
+    actionTitle: 'Como agir nesta playlist',
+    actionLines: [
+      `Toque tudo com \`/playlist play name:"${playlist.name}"\`.`,
+      `Remova um item com \`/playlist remove name:"${playlist.name}" index:x\`.`,
+    ],
+    hint:
+      items.length > 0
+        ? 'Use `/playlist play name:"' + playlist.name + '"` para iniciar essa playlist.'
+        : 'Use `/playlist add name:"' + playlist.name + '"` para guardar a faixa atual ou uma nova busca.',
+  });
+}
+
+async function playPlaylistById(deps: LibraryUseCaseDeps, input: PlaylistByIdInput): Promise<LibraryMutationResult> {
+  const playlist = await deps.playlists.getById(input.user.id, input.playlistId);
+  if (!playlist) {
+    throw new ValidationCommandError('Playlist nao encontrada. Use `/playlist list` para conferir os nomes salvos.', {
+      title: 'Playlist nao encontrada',
+    });
+  }
+
+  ensureAudioPlaybackAvailable(deps.ffmpeg);
+  const items = await deps.playlists.listItemsById(input.user.id, input.playlistId);
+  if (!items || items.length === 0) {
+    throw new ValidationCommandError('Playlist nao encontrada ou vazia. Use `/playlist list` para confirmar o nome e o conteudo salvo.', {
+      title: 'Playlist indisponivel',
+    });
+  }
+
+  const voiceChannel = await deps.music.ensurePlayableVoiceChannel(input.member);
+  const result = await deps.music.playStoredTracks(
+    voiceChannel,
+    items.map(playlistItemRecordToStoredTrack),
+    input.user,
+    input.metadata,
+  );
+  const startedPlayback = result.queue.currentTrack?.url === result.track.url;
+
+  return trackResult(
+    startedPlayback ? 'PHONIX | Playlist iniciada pelo painel' : 'PHONIX | Playlist enviada pelo painel',
+    result.track,
+    startedPlayback
+      ? `A playlist **${playlist.name}** comecou a tocar agora a partir do painel interativo do PHONIX.`
+      : `A playlist **${playlist.name}** entrou na fila atual a partir do painel interativo do PHONIX.`,
+    {
+      fields: [
+        {
+          name: 'Playlist chamada',
+          value: `**${playlist.name}** com **${items.length}** faixa(s) salva(s).`,
+          inline: true,
+        },
+        {
+          name: 'Entrada na sessao',
+          value: startedPlayback
+            ? 'A primeira faixa assumiu a sessao atual agora.'
+            : 'A playlist entrou na fila atual para tocar em seguida.',
+          inline: true,
+        },
+      ],
+      hint: startedPlayback
+        ? 'Use `/queue` para revisar a ordem completa ou `/shuffle` se quiser embaralhar as proximas faixas.'
+        : 'Use `/queue` para revisar onde a playlist entrou ou `/skip` se quiser ir direto para ela.',
+    },
+  );
 }
 
 function formatShortDate(value: Date) {

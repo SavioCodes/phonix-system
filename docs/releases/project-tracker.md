@@ -35,6 +35,7 @@
 - A revisao `v2.0.5` adiciona um eixo novo de operacao: owner access centralizado, DM automatica de online, namespace `/owner` e leitura dedicada da guild oficial.
 - A revisao `v2.1.0` fortalece a continuidade operacional por guild com `Smart Session`: recovery mais claro, session health estruturada, deteccao de sessao parcial/quebrada e melhor leitura em `recover`, `queue`, `nowplaying` e `doctor`.
 - A revisao `v2.2.0` abre uma linha nova de superficie Discord: paineis densos migraram seletivamente para `Components V2`, enquanto `help` e notices compactos continuam classicos para preservar ergonomia, compatibilidade e manutencao.
+- A revisao `v2.3.0` transforma essa base em um interaction system: `queue`, `nowplaying`, `recover`, `config` e `doctor` deixam de ser superficies so de leitura e passam a aceitar acoes rapidas com atualizacao do mesmo painel.
 - O passe seguinte ainda dentro da mesma linha `v2.2.0` levou os itens mais fortes da fila curta para o mesmo patamar visual: `recover`, `favorite list`, `playlist list` e `history` agora usam paineis dedicados, em vez de notices genéricos.
 - O passe visual mais recente da linha `v2.1.0` reforca a apresentacao dentro do Discord: notices com campos e hint contextual, `play` mais escaneavel, `queue` e `nowplaying` com cara de painel de sessao e `config`/`doctor` organizados por blocos de leitura rapida.
 - O hardening mais recente dentro da mesma linha fechou gaps de UX e dominio ainda reais: favoritos/playlists agora explicam origem do atalho e impacto na sessao, `config` passou a devolver validacoes de prefixo/volume com titulos claros e `help`/`admin` mostram melhor o estado atual da guild.
@@ -75,6 +76,31 @@
 - [x] Adicionar `SECURITY.md`, `.editorconfig` e endurecer `.gitignore` para a exposicao publica
 - [x] Incluir `test:smoke` na pipeline de CI
 - [x] Criar o repositorio remoto `phonix-system` no GitHub e aplicar os topicos recomendados
+
+### `v2.3.0` - Discord Interaction System
+
+- [x] Confirmar a versao atual real em runtime, docs, versionamento e tag publica antes de abrir a nova linha
+- [x] Revalidar docs oficiais do Discord, `discord.js` e `discord-player` para a fase de interacao
+- [x] Identificar o que a `v2.2.0` resolveu e o que ainda ficou `PARCIAL` em UX, praticidade e Components V2
+- [x] Formalizar um interaction system dedicado para paines acionaveis em `panelActions.ts` e `panelInteractions.ts`
+- [x] Tornar `play`, `queue`, `nowplaying`, `recover`, `config view` e `doctor` superficies acionaveis quando a acao fizer sentido real
+- [x] Atualizar o mesmo painel em vez de criar novas mensagens para refresh, pause/resume, shuffle e toggles administrativos
+- [x] Preservar a estrategia hibrida: `help` continua classico por ergonomia, enquanto a biblioteca ganha acoes rapidas de destaque sem abandonar os fluxos explicitos por nome/indice
+- [x] Expor no painel o estado operacional que orienta a interacao, como `playbackStateLabel` e navegacao restrita ao usuario que abriu a superficie
+- [x] Integrar o roteamento das interacoes ao `InteractionCreate` sem criar uma segunda arquitetura de comandos
+- [x] Tornar `favorite list`, `playlist list` e `history` superficies acionaveis com botoes de destaque quando isso reduzir atrito real
+- [x] Proteger por teste as atualizacoes repetidas no mesmo painel para `queue`, `nowplaying`, `recover`, `config` e `doctor`
+- [x] Atualizar `README`, `ARCHITECTURE`, `PROJECT_TRACKER`, `CHANGELOG`, `RELEASE_POLICY` e runbooks de verificacao impactados
+- [x] Alinhar runtime e versao publica para `2.3.0`
+- [x] Publicar a tag e a release publica `v2.3.0` no GitHub
+- [x] Rodar `npm run typecheck`
+- [x] Rodar `npm run build`
+- [x] Rodar `npm test`
+- [x] Rodar `npm run test:smoke`
+- [x] Tentar a rodada manual no Discord web por automacao local e registrar que ela ficou bloqueada por ausencia de sessao autenticada neste ambiente
+- [ ] Validar manualmente a ergonomia final dos paineis acionaveis no cliente Discord desktop/mobile
+- [ ] Validar em Discord real se `queue`, `nowplaying`, `recover`, `config` e `doctor` continuam claros quando atualizados repetidamente no mesmo painel
+- [x] Decidir a linha da biblioteca na `v2.3.0`: ela ganha acoes de destaque por botao, mas mutacoes precisas continuam command-driven
 
 ### `v2.2.0` - Signal Surfaces
 

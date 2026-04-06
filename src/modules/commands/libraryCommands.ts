@@ -118,7 +118,14 @@ const favoriteCommand: CommandDefinition<FavoriteArgs> = {
       }
 
       case 'list': {
-        return presentCommandView(await context.services.useCases.library.favoriteList(context.user.id));
+        return presentCommandView(
+          await context.services.useCases.library.favoriteList({
+            guildId: context.guild.id,
+            user: context.user,
+            member: context.member,
+            metadata: context.metadata,
+          }),
+        );
       }
 
       case 'play': {

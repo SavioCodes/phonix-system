@@ -1,5 +1,21 @@
 # PHONIX Changelog
 
+## `v2.3.0` - Discord Interaction System
+
+- A linha publica sai de `Signal Surfaces` para `Discord Interaction System`: os paines premium da `v2.2.0` deixam de ser so leitura e passam a aceitar acoes rapidas no proprio painel quando isso melhora o produto de verdade.
+- `play`, `queue`, `nowplaying`, `recover`, `config view` e `doctor` agora podem carregar linhas de acao em torno dos paineis `Components V2`, sempre com atualizacao no mesmo painel em vez de abrir uma nova cascata de mensagens no canal.
+- `queue` ganhou acoes de `Atualizar`, `Now Playing` e `Embaralhar`, o que reduz atrito entre revisar estado e agir sobre a fila sem reexecutar o comando inteiro.
+- `nowplaying` ganhou acoes de `Atualizar`, `Fila ativa` e `Pausar/Retomar`, reaproveitando o estado real do player para decidir o toggle certo e mantendo o painel sincronizado depois da acao.
+- `config view` virou um painel administrativo mais pratico: agora e possivel atualizar a leitura da guild, alternar `autoplay` e `resume queue` e saltar para `doctor` sem sair do contexto.
+- `doctor` ganhou atualizacao em-place e atalho de ida para `config`, reforcando a leitura operacional como uma superficie de trabalho e nao apenas um dump visual.
+- `recover` passa a funcionar como ponte operacional entre sessao restaurada, `queue`, `nowplaying` e `doctor`, o que reduz friccao depois de recovery parcial ou quando a sessao volta com ressalvas.
+- A biblioteca tambem deixa de ser so leitura nessa linha: `favorite list`, `playlist list` e `history` agora podem abrir acoes de destaque no proprio painel, como tocar o item em evidencia ou abrir a playlist destacada sem reexecutar o comando inteiro.
+- A arquitetura de interacao foi formalizada em `panelActions.ts` e `panelInteractions.ts`, sem empurrar regra de dominio para a camada de UI e sem criar um segundo sistema paralelo ao `help`.
+- `register-client-events.ts` agora roteia interacoes de painel e ajuda no mesmo ponto de entrada, mantendo a politica anti-spam e o tratamento seguro de falhas tardias de interaction.
+- A estrategia hibrida fica mais madura e mais honesta: `Components V2` sobem de nivel nas superficies densas e acionaveis, enquanto `help` continua classico porque select menu + botoes tradicionais ainda sao melhores para onboarding paginado.
+- A linha `v2.3.0` tambem deixa explicito o limite desse interaction system: a biblioteca ganha acoes rapidas de destaque, mas mutacoes precisas por nome ou indice continuam melhores como comandos em vez de botoes genericos sobrecarregados.
+- `README`, arquitetura, tracker, release policy e runbooks de verificacao foram alinhados para a nova linha `v2.3.0`, registrando a base oficial consultada no Discord, `discord.js` e `discord-player`.
+
 ## `v2.2.0` - Signal Surfaces
 
 - A superficie Discord entrou em uma linha nova e publica de UX visual: `play`, `queue`, `nowplaying`, `config view` e `doctor` agora usam `Components V2` com `Container`, `Section`, `TextDisplay`, `MediaGallery`, `Separator` e `IS_COMPONENTS_V2` quando isso realmente melhora leitura e hierarquia.

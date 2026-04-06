@@ -1,6 +1,11 @@
 import { MessageFlags } from 'discord.js';
 import { describe, expect, it } from 'vitest';
-import { presentCommandView, presentHelpResult } from '../../src/modules/commands/presenters.js';
+import {
+  presentCommandView,
+  presentDoctorResult,
+  presentGuildConfigResult,
+  presentHelpResult,
+} from '../../src/modules/commands/presenters.js';
 import type {
   CollectionView,
   HelpResultView,
@@ -22,6 +27,10 @@ describe('Components V2 presentation', () => {
     expect(rendered?.components?.some((component) => component.content?.includes('PHONIX | Fila ativa'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Session snapshot'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('youtube/youtube-dl'))).toBe(true);
+
+    const actions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(payload.components?.[1] as never);
+    expect(actions?.components?.some((component) => component.label === 'Atualizar')).toBe(true);
+    expect(actions?.components?.some((component) => component.label === 'Embaralhar')).toBe(true);
   });
 
   it('renders nowplaying as a Components V2 media panel', () => {
@@ -34,6 +43,9 @@ describe('Components V2 presentation', () => {
     expect(rendered?.components?.some((component) => component.content?.includes('PHONIX | Tocando agora'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Progresso'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Night Drive'))).toBe(true);
+
+    const actions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(payload.components?.[1] as never);
+    expect(actions?.components?.some((component) => component.label === 'Pausar')).toBe(true);
   });
 
   it('renders recover as a dedicated Components V2 recovery panel', () => {
@@ -45,6 +57,9 @@ describe('Components V2 presentation', () => {
     const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload.components?.[0] as never);
     expect(rendered?.components?.some((component) => component.content?.includes('Sessao restaurada com ressalvas'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Resumo do recovery'))).toBe(true);
+
+    const actions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(payload.components?.[1] as never);
+    expect(actions?.components?.some((component) => component.label === 'Diagnostico')).toBe(true);
   });
 
   it('renders library collections as Components V2 panels', () => {
@@ -56,6 +71,9 @@ describe('Components V2 presentation', () => {
     const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload.components?.[0] as never);
     expect(rendered?.components?.some((component) => component.content?.includes('Favoritos salvos'))).toBe(true);
     expect(rendered?.components?.some((component) => component.content?.includes('Night Drive'))).toBe(true);
+
+    const actions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(payload.components?.[1] as never);
+    expect(actions?.components?.some((component) => component.label === 'Tocar destaque')).toBe(true);
   });
 
   it('keeps help on the classic embed + action row path', () => {
@@ -66,6 +84,50 @@ describe('Components V2 presentation', () => {
     expect(renderEmbed(payload.embeds?.[0])?.title).toBe('PHONIX | Comece por aqui');
     expect(payload.components).toHaveLength(2);
   });
+
+  it('renders config and doctor with operational action rows', () => {
+    const configPayload = presentGuildConfigResult({
+      navigation: {
+        guildId: 'guild-1',
+        userId: 'user-1',
+      },
+      settings: {
+        prefix: '!',
+        defaultVolume: 70,
+        autoplayEnabled: false,
+        resumeQueueEnabled: true,
+      },
+      sessionDiagnostics: createSessionDiagnostics(),
+      liveVolume: 70,
+    });
+
+    const doctorPayload = presentDoctorResult({
+      navigation: {
+        guildId: 'guild-1',
+        userId: 'user-1',
+      },
+      appVersion: '2.3.0',
+      overallStatus: 'ok',
+      slashScope: 'global',
+      summary: { ok: 1, warning: 0, error: 0 },
+      dashboard: {
+        requestedEnabled: false,
+        effectiveEnabled: false,
+        baseUrl: null,
+        port: 3000,
+        disableReason: null,
+      },
+      checks: [],
+      nextActions: [],
+    });
+
+    const configActions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(configPayload.components?.[1] as never);
+    const doctorActions = renderDiscordValue<{ components?: Array<{ label?: string }> }>(doctorPayload.components?.[1] as never);
+
+    expect(configActions?.components?.some((component) => component.label === 'Ativar autoplay')).toBe(true);
+    expect(configActions?.components?.some((component) => component.label === 'Desativar resume')).toBe(true);
+    expect(doctorActions?.components?.some((component) => component.label === 'Configuracoes')).toBe(true);
+  });
 });
 
 function createQueueView(): QueueView {
@@ -73,6 +135,10 @@ function createQueueView(): QueueView {
     kind: 'queue',
     title: 'PHONIX | Fila ativa',
     description: 'Sessao ativa em **Synth Room**.',
+    navigation: {
+      guildId: 'guild-1',
+      userId: 'user-1',
+    },
     currentTrack: {
       title: 'Night Drive',
       author: 'Nova',
@@ -86,6 +152,7 @@ function createQueueView(): QueueView {
     size: 1,
     durationFormatted: '3:50',
     hiddenTrackCount: 0,
+    playbackStateLabel: 'tocando',
     volume: 70,
     voiceChannelName: 'Synth Room',
     repeatModeLabel: 'off',
@@ -110,6 +177,10 @@ function createNowPlayingView(): NowPlayingView {
     kind: 'nowPlaying',
     title: 'PHONIX | Tocando agora',
     description: '**Night Drive** esta tocando agora em **Synth Room**.',
+    navigation: {
+      guildId: 'guild-1',
+      userId: 'user-1',
+    },
     track: {
       title: 'Night Drive',
       author: 'Nova',
@@ -119,6 +190,7 @@ function createNowPlayingView(): NowPlayingView {
       sourceLabel: 'YouTube',
     },
     progressBar: '[=====-----]',
+    playbackStateLabel: 'tocando',
     volume: 70,
     voiceChannelName: 'Synth Room',
     queueSize: 2,
@@ -151,6 +223,10 @@ function createRecoverView(): RecoverView {
     variant: 'warning',
     title: 'PHONIX | Sessao restaurada com ressalvas',
     description: 'A sessao voltou para o seu canal, mas apenas **3** de **4** faixa(s) continuaram tocaveis.',
+    navigation: {
+      guildId: 'guild-1',
+      userId: 'user-1',
+    },
     track: {
       title: 'Night Drive',
       author: 'Nova',
@@ -171,6 +247,13 @@ function createCollectionView(): CollectionView {
     kind: 'collection',
     title: 'PHONIX | Seus favoritos',
     description: 'Voce tem **2** favorito(s) salvo(s).',
+    panel: {
+      surface: 'favorites',
+      guildId: 'guild-1',
+      userId: 'user-1',
+      contextId: null,
+      hasLeadAction: true,
+    },
     collectionTitle: 'Favoritos salvos',
     leadTrack: {
       title: 'Night Drive',

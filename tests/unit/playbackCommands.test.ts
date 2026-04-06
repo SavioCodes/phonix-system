@@ -79,6 +79,10 @@ describe('play command', () => {
       kind: 'play',
       title: 'PHONIX | Fila substituida',
       description: 'A fila atual foi substituida e a nova faixa entrou imediatamente.',
+      navigation: {
+        guildId: 'guild-1',
+        userId: 'user-1',
+      },
       track: {
         title: 'Neon Skyline',
         author: 'Aria',
@@ -141,7 +145,7 @@ describe('play command', () => {
     });
     expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
     expect(payload?.embeds).toBeUndefined();
-    expect(payload?.components?.length).toBe(1);
+    expect(payload?.components?.length).toBe(2);
     const rendered = payload?.components?.[0];
     expect(rendered && 'toJSON' in rendered ? rendered.toJSON() : rendered).toMatchObject({
       accent_color: expect.any(Number),

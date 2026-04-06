@@ -4,7 +4,7 @@
 
 - Ultima atualizacao: `2026-04-05`
 - Estado geral: `PARCIAL`
-- Contexto de release: `v2.2.0`
+- Contexto de release: `v2.3.0`
 - Leitura honesta: o ambiente local confirma `compatibility` funcional, mas o caminho nativo `fidelity/youtubei` continua falhando em `decipher`; por isso o PHONIX agora quarentena esse caminho e degrada o runtime para `compatibility` ainda no startup quando esse probe falha.
 
 ## Estado atual detectado
@@ -26,8 +26,10 @@ Resultado confirmado por `npm run verify:playback` no ambiente atual:
 - `compatibility` esta pronto para uso real no ambiente atual.
 - `fidelity/youtubei` esta `BLOQUEADO NESTE AMBIENTE` por falha upstream de `decipher`.
 - o runtime do PHONIX detecta esse bloqueio no startup e sobe degradado para `compatibility`, evitando a primeira tentativa quebrada e tratando `compatibility` como caminho operacional efetivo desta instalacao.
-- a rodada visual nova de `play`/`queue`/`nowplaying` continua `PARCIAL` ate validacao manual no Discord real, porque a suite automatica garante o contrato de `Components V2`, mas nao a percepcao final dentro do cliente Discord.
-- a rodada visual nova de `recover`, `favorite list`, `playlist list` e `history` tambem continua `PARCIAL` pelo mesmo motivo: o contrato e os testes estao fechados, mas a leitura final no cliente Discord ainda precisa de rodada manual auditavel.
+- a rodada automatizada da `v2.3.0` agora cobre contrato de `Components V2`, acoes de painel, atualizacao repetida da mesma mensagem e a nova library acionavel por destaque.
+- a rodada visual nova de `play`/`queue`/`nowplaying` continua `PARCIAL` ate validacao manual no Discord real, porque a suite automatica garante o contrato e a atualizacao em-place, mas nao a percepcao final dentro do cliente Discord.
+- a rodada interativa da `v2.3.0` tambem continua `PARCIAL` no cliente real: `queue`, `nowplaying`, `recover`, `config`, `doctor`, `favorite list`, `playlist list` e `history` ja estao protegidos por teste, mas ainda falta leitura ergonomica final em desktop/mobile.
+- houve uma tentativa real de abrir o Discord web por automacao nesta maquina, inclusive reaproveitando um perfil local do navegador, mas nao havia sessao autenticada disponivel; a validacao manual ficou bloqueada por login ausente, nao por falta de runbook ou cobertura automatizada.
 
 ## Matriz A/B do ambiente atual
 
@@ -62,7 +64,12 @@ $env:YOUTUBE_PLAYBACK_PROFILE='fidelity'; npm run start
    - o painel continua escaneavel em desktop e mobile
    - artwork/capa so aparece quando houver metadata real
    - hints e labels continuam claros em sessao parcial/quebrada
-6. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
+6. Nas superficies acionaveis da `v2.3.0`, marque tambem se:
+   - `queue` atualiza no mesmo painel sem abrir mensagem nova
+   - `nowplaying` pausa/retoma sem perder o contexto do painel
+   - `recover` navega bem para `queue`, `nowplaying` e `doctor`
+   - `config` e `doctor` conseguem alternar contexto com leitura clara e sem poluicao visual
+7. Preencha as colunas `PENDENTE` desta tabela com os resultados reais no Discord, mas mantendo a leitura de que `fidelity` pode degradar antes do primeiro `/play`
 
 Quando a matriz estiver completa, este documento pode sair de `PARCIAL` e virar o registro final da Fase 4, mas sem fingir que o caminho nativo do `youtubei` esta saudavel neste ambiente se isso nao se confirmar.
 

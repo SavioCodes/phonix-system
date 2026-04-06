@@ -17,7 +17,14 @@ const historyCommand: CommandDefinition<Record<string, never>> = {
     return {};
   },
   async execute(context) {
-    return presentCommandView(await context.services.useCases.library.history(context.user.id));
+    return presentCommandView(
+      await context.services.useCases.library.history({
+        guildId: context.guild.id,
+        user: context.user,
+        member: context.member,
+        metadata: context.metadata,
+      }),
+    );
   },
 };
 

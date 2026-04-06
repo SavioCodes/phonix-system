@@ -282,7 +282,12 @@ describe('library use cases', () => {
       history: {} as never,
     });
 
-    const result = await useCases.favoriteList('user-1');
+    const result = await useCases.favoriteList({
+      guildId: 'guild-1',
+      user: { id: 'user-1' } as never,
+      member: {} as never,
+      metadata: { textChannelId: 'text-1' },
+    });
 
     expect(result.kind).toBe('collection');
     if (result.kind !== 'collection') {
@@ -290,6 +295,12 @@ describe('library use cases', () => {
     }
 
     expect(result.collectionTitle).toBe('Favoritos salvos');
+    expect(result.panel).toMatchObject({
+      surface: 'favorites',
+      guildId: 'guild-1',
+      userId: 'user-1',
+      hasLeadAction: true,
+    });
     expect(result.leadTrack?.title).toBe('Night Drive');
     expect(result.leadTrack?.sourceLabel).toBe('YouTube');
     expect(result.entries[0]).toMatchObject({
@@ -333,7 +344,12 @@ describe('library use cases', () => {
       } as never,
     });
 
-    const result = await useCases.history('user-1');
+    const result = await useCases.history({
+      guildId: 'guild-1',
+      user: { id: 'user-1' } as never,
+      member: {} as never,
+      metadata: { textChannelId: 'text-1' },
+    });
 
     expect(result.kind).toBe('collection');
     if (result.kind !== 'collection') {
@@ -341,9 +357,15 @@ describe('library use cases', () => {
     }
 
     expect(result.collectionTitle).toBe('Ultimas reproducoes');
+    expect(result.panel).toMatchObject({
+      surface: 'history',
+      guildId: 'guild-1',
+      userId: 'user-1',
+      hasLeadAction: true,
+    });
     expect(result.entries.some((entry) => entry.title === 'Night Drive')).toBe(true);
     expect(result.actionLines.some((line) => line.includes('/favorite add'))).toBe(true);
-    expect(result.summaryLines.some((line) => line.includes('nao implementado ainda'))).toBe(true);
-    expect(result.hint).toContain('nao toca por indice');
+    expect(result.summaryLines.some((line) => line.includes('Atalho rapido'))).toBe(true);
+    expect(result.hint).toContain('destaque do painel');
   });
 });

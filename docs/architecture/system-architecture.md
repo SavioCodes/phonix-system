@@ -69,6 +69,7 @@ assets/
 - Na `v2.0.5`, `ownerCommands.ts` passa a fazer parte da superficie de operacao restrita do bot, sem misturar owner access com o catalogo administrativo comum.
 - Na `v1.9.0`, os comandos passaram a ser adaptadores finos: parseiam args, chamam um use case e apresentam o resultado.
 - Na `v1.9.1`, o `help` ganhou um handler proprio de componentes para navegar entre paginas sem misturar UI interativa com a pipeline de comandos.
+- Na `v2.3.0`, `panelActions.ts` e `panelInteractions.ts` formalizam um trilho proprio para paines acionaveis: a camada de comandos passa a abrir superficies que podem ser atualizadas no mesmo painel, sem transformar clique em atalho magico fora do dominio.
 - Na revisao `v1.9.4`, os comandos ganharam guias compartilhados de uso, parse errors mais orientados e consistencia maior entre slash e prefixo, especialmente em `config`, `favorite`, `playlist`, `queue`, `nowplaying` e `doctor`.
 - Na revisao `v1.9.5`, o catalogo ficou mais enxuto: `join`, `leave` e `autoplay` sairam da superficie publica, enquanto `play`, `recover`, `stop` e `config autoplay` absorveram o fluxo final de conexao, encerramento e configuracao.
 - Na revisao `v2.0.3`, a camada de comandos foi refinada sem trocar a arquitetura: descricoes, respostas de sucesso/erro, hints e consistencia visual foram melhorados em playback, biblioteca, help, config e doctor.
@@ -107,6 +108,7 @@ assets/
 - `use-cases/libraryUseCases.ts` concentra o fluxo de favoritos, playlists e historico em contratos simples para a UI.
 - No endurecimento mais recente da linha `v2.1.0`, a biblioteca passou a entregar mais contexto acionavel: favoritos, playlists e historico agora devolvem listas e notices com reutilizacao mais clara, sem inventar novos comandos nem nova superficie.
 - No passe seguinte ainda dentro da linha `v2.2.0`, favoritos, playlists e historico ganharam uma superficie de colecao dedicada: `favorite list`, `playlist list` e `history` agora podem subir como paineis `Components V2` com destaque de media quando houver artwork salvo, sem reescrever os fluxos compactos de `add/remove/play`.
+- Na `v2.3.0`, essas colecoes deixam de ser puramente `read-first`: favoritos, playlists e historico agora podem expor acoes rapidas de destaque no proprio painel, enquanto mutacoes precisas por nome ou indice continuam command-driven para preservar clareza e previsibilidade.
 
 ### `src/modules/music`
 
@@ -149,23 +151,28 @@ assets/
 - Na `v2.2.0`, a superficie Discord entra em um design system hibrido: `components-v2.ts` concentra paineis densos com `Container`, `Section`, `TextDisplay`, `MediaGallery` e `Separator` para `play`, `queue`, `nowplaying`, `config view` e `doctor`, enquanto `help`, notices compactos e fluxos transacionais curtos continuam em embeds/classic action rows por ergonomia e manutencao.
 - No passe seguinte ainda dentro da mesma linha, `components-v2.ts` tambem passa a sustentar `recover` e as colecoes principais da biblioteca (`favorite list`, `playlist list`, `history`), preservando os fluxos curtos de confirmacao no trilho classico e evitando um segundo sistema visual paralelo.
 - A mesma linha tambem troca a dependencia de emoji como linguagem principal por branding de asset real do PHONIX em `theme.ts`, permitindo author/footer/media icons consistentes sem criar uma segunda arquitetura de UI.
+- Na `v2.3.0`, a camada visual sobe de nivel sem perder criterio: paineis V2 passam a carregar action rows quando a acao e realmente util e pode atualizar a mesma mensagem com clareza, enquanto `help` continua classico por ergonomia de navegacao.
 - `src/scripts/verify-playback.ts` e `docs/verification/playback-verification.md` formam a camada operacional de verificacao A/B, unindo checks automatizados locais com roteiro manual de bitrate/perfil no Discord.
 - `src/scripts/verify-dashboard.ts` e `docs/verification/admin-center-verification.md` formam a camada operacional do painel web, separando verificacao automatica local de validacao manual do OAuth.
 - `docs/verification/playback-verification-results.md` funciona como artefato de saida dessa frente: ele registra o estado atual do ambiente e a matriz manual preenchida, sem misturar resultado com o runbook.
 
-## Referencias oficiais usadas na linha `v2.2.0`
+## Referencias oficiais usadas na linha `v2.3.0`
 
 - Discord Components docs: https://docs.discord.com/developers/components/using-message-components
+- Discord Components overview: https://docs.discord.com/developers/components/overview
 - Discord Components reference: https://docs.discord.com/developers/components/reference
 - Discord interactions and response lifecycle: https://docs.discord.com/developers/interactions/receiving-and-responding
 - discord.js `InteractionReplyOptions`: https://discord.js.org/docs/packages/discord.js/main/InteractionReplyOptions%3AInterface
+- discord.js builders: https://discord.js.org/docs/packages/builders/main
 - discord-player events: https://discord-player.js.org/docs/common-actions/adding_events
 - discord-player stream sources: https://discord-player.js.org/docs/extractors/stream_sources
 
-Essas referencias sustentam tres decisoes explicitas desta linha:
+Essas referencias sustentam quatro decisoes explicitas desta linha:
 
 - `Components V2` entram apenas onde a hierarquia visual realmente melhora a leitura do produto.
+- Paineis V2 so recebem acoes quando o Discord consegue atualizar a mesma mensagem com clareza e sem misturar `content`/`embeds` no mesmo payload.
 - `help`, notices compactos e fluxos curtos continuam classicos porque o ganho visual de V2 nao compensa a perda de simplicidade e manutencao nessas superficies.
+- Listas de biblioteca podem ganhar acoes de destaque quando isso reduz atrito real, mas favoritos, playlists e historico continuam preservando comandos parametrizados para mutacoes precisas por nome ou indice.
 - O pipeline de resposta respeita a restricao oficial de `IS_COMPONENTS_V2`: paineis V2 nao misturam `content` ou `embeds` no mesmo payload.
 
 ### `src/scripts`
@@ -223,6 +230,7 @@ Essas referencias sustentam tres decisoes explicitas desta linha:
 - A revisao `v2.1.0` fortaleceu a continuidade operacional por guild: o produto passou a distinguir recovery completo, parcial e quebrado no runtime, na telemetria, no `doctor` e nos embeds principais.
 - O passe visual mais recente dentro da linha `v2.1.0` reforcou a hierarquia da superficie Discord sem mudar a arquitetura: notices ficaram estruturados, `play` ficou mais facil de escanear e `doctor` passou a se organizar por blocos de leitura rapida.
 - A linha `v2.2.0` aprofunda isso sem quebrar a divisao de responsabilidades: `framework.ts` passa a aceitar payloads `Components V2`, `presenters.ts` decide quais superficies sao V2 ou classicas, e `help` permanece no trilho interativo antigo porque a UX dessa central ainda depende melhor de select menu e botoes tradicionais.
+- A `v2.3.0` sobe mais um degrau sem virar um redesign arbitrario: `panelActions.ts` define a linguagem de acoes por superficie, `panelInteractions.ts` traduz clique em mutacao/use case e `register-client-events.ts` atualiza o mesmo painel em vez de duplicar respostas no canal.
 - Camada de use cases adicionada para reduzir acoplamento entre `commands`, `music`, `library` e `diagnostics`.
 - Presenters adicionados para manter mapeamento de UI fora dos comandos e fora dos services.
 - Central interativa de `help` adicionada sem criar novos root commands nem persistir estado em banco.

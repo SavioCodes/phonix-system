@@ -164,6 +164,7 @@ export const embeds = {
       {
         name: 'Playback agora',
         value: [
+          `Estado: **${view.playbackStateLabel ?? 'desconhecido'}**`,
           `Canal: **${view.voiceChannelName ?? 'nao identificado'}**`,
           `Volume: **${view.volume}%**`,
           `Loop: **${view.repeatModeLabel}**`,
@@ -264,6 +265,7 @@ export const embeds = {
         {
           name: 'Playback agora',
           value: [
+            `Estado: **${view.playbackStateLabel ?? 'desconhecido'}**`,
             `Canal: **${view.voiceChannelName ?? 'nao identificado'}**`,
             `Volume: **${view.volume}%**`,
             `Loop: **${view.repeatModeLabel}**`,

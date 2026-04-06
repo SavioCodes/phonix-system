@@ -1,11 +1,11 @@
 # PHONIX Owner Control
 
-## Referencias oficiais da `v2.2.0`
+## Referencias oficiais da `v2.3.0`
 
 - Owner global: `976586934455513159`
 - Official guild: `1489363867023835310`
 
-Esses IDs sao tratados como referencias oficiais do runtime e da operacao do PHONIX na linha `v2.2.0`.
+Esses IDs sao tratados como referencias oficiais do runtime e da operacao do PHONIX na linha `v2.3.0`.
 
 ## O que a linha `v2.x` adiciona
 

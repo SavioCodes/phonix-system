@@ -133,7 +133,7 @@ describe('registerClientEvents', () => {
 
     expect(infoSpy).toHaveBeenCalledWith(
       {
-        appVersion: '2.2.0',
+        appVersion: '2.3.0',
         bot: 'PHONIX#6820',
         dashboardRequested: false,
         dashboardEnabled: false,

@@ -132,7 +132,7 @@ describe('doctor service', () => {
     });
 
     expect(report.overallStatus).toBe('ok');
-    expect(report.appVersion).toBe('2.2.0');
+    expect(report.appVersion).toBe('2.3.0');
     expect(report.summary.error).toBe(0);
     expect(report.summary.warning).toBe(0);
     expect(report.checks.some((check) => check.label === 'Dashboard admin center' && check.status === 'ok')).toBe(true);
@@ -954,7 +954,7 @@ describe('doctor service', () => {
 
 function createConfig(overrides: Partial<AppConfig>): AppConfig {
   return {
-    appVersion: '2.2.0',
+    appVersion: '2.3.0',
     discordToken: 'token',
     discordClientId: 'client-1',
     discordGuildId: 'guild-1',

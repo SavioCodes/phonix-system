@@ -26,6 +26,7 @@ describe('config command', () => {
       {
         hasAdministrativeControl: () => true,
         guild: { id: 'guild-1' },
+        user: { id: 'user-1' },
         queue: null,
         services: {
           useCases: {

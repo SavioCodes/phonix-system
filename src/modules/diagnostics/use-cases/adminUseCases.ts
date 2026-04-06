@@ -27,6 +27,7 @@ interface AdminScopedInput {
 
 interface ConfigViewInput {
   guildId: string;
+  userId?: string;
   liveVolume: number | null;
 }
 
@@ -104,7 +105,13 @@ export function createAdminUseCases(deps: AdminUseCaseDeps) {
         guild: input.guild,
         member: input.member,
         textChannelId: input.textChannelId,
-      });
+      }).then((report) => ({
+        ...report,
+        navigation: {
+          guildId: input.guild.id,
+          userId: input.userId,
+        },
+      }));
     },
 
     async configView(input: ConfigViewInput): Promise<GuildConfigResult> {
@@ -114,6 +121,14 @@ export function createAdminUseCases(deps: AdminUseCaseDeps) {
       ]);
 
       return {
+        ...(input.userId
+          ? {
+              navigation: {
+                guildId: input.guildId,
+                userId: input.userId,
+              },
+            }
+          : {}),
         settings: {
           prefix: settings.prefix,
           defaultVolume: settings.defaultVolume,

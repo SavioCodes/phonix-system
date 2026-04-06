@@ -132,38 +132,42 @@ function simplePlaybackCommand(
 
 const pauseCommand = simplePlaybackCommand('pause', 'Pausa a faixa atual e preserva a sessao para retomada rapida', ['pausar'], async (context) => {
   return presentCommandView(
-    await context.services.useCases.playback.pause({
-      guildId: context.guild.id,
-      member: context.member,
-    }),
+      await context.services.useCases.playback.pause({
+        guildId: context.guild.id,
+        member: context.member,
+        userId: context.user.id,
+      }),
   );
 });
 
 const resumeCommand = simplePlaybackCommand('resume', 'Retoma a faixa pausada e continua a sessao do ponto em que parou', ['continuar'], async (context) => {
   return presentCommandView(
-    await context.services.useCases.playback.resume({
-      guildId: context.guild.id,
-      member: context.member,
-    }),
+      await context.services.useCases.playback.resume({
+        guildId: context.guild.id,
+        member: context.member,
+        userId: context.user.id,
+      }),
   );
 });
 
 const skipCommand = simplePlaybackCommand('skip', 'Pula a faixa atual e chama a proxima entrada da fila, se existir', ['pular'], async (context) => {
   return presentCommandView(
-    await context.services.useCases.playback.skip({
-      guildId: context.guild.id,
-      member: context.member,
-    }),
+      await context.services.useCases.playback.skip({
+        guildId: context.guild.id,
+        member: context.member,
+        userId: context.user.id,
+      }),
   );
 });
 
 const stopCommand = simplePlaybackCommand('stop', 'Encerra a sessao atual, limpa a fila persistida e libera o canal de voz', ['parar', 'leave', 'sair', 'disconnect'], async (context) => {
   return presentCommandView(
-    await context.services.useCases.playback.stop({
-      guildId: context.guild.id,
-      member: context.member,
-      metadata: context.metadata,
-    }),
+      await context.services.useCases.playback.stop({
+        guildId: context.guild.id,
+        member: context.member,
+        userId: context.user.id,
+        metadata: context.metadata,
+      }),
   );
 });
 
@@ -186,6 +190,7 @@ const queueCommand: CommandDefinition<Record<string, never>> = {
       await context.services.useCases.playback.queue({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
       }),
     );
   },
@@ -210,6 +215,7 @@ const nowPlayingCommand: CommandDefinition<Record<string, never>> = {
       await context.services.useCases.playback.nowPlaying({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
       }),
     );
   },
@@ -241,6 +247,7 @@ const volumeCommand: CommandDefinition<VolumeArgs> = {
       await context.services.useCases.playback.volume({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
         value: args.value,
       }),
     );
@@ -285,6 +292,7 @@ const loopCommand: CommandDefinition<LoopArgs> = {
       await context.services.useCases.playback.loop({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
         mode: args.mode,
       }),
     );
@@ -307,6 +315,7 @@ const shuffleCommand: CommandDefinition<Record<string, never>> = {
       await context.services.useCases.playback.shuffle({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
       }),
     );
   },
@@ -334,6 +343,7 @@ const removeCommand: CommandDefinition<RemoveArgs> = {
       await context.services.useCases.playback.remove({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
         index: args.index,
       }),
     );
@@ -356,6 +366,7 @@ const clearCommand: CommandDefinition<Record<string, never>> = {
       await context.services.useCases.playback.clear({
         guildId: context.guild.id,
         member: context.member,
+        userId: context.user.id,
       }),
     );
   },

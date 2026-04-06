@@ -14,6 +14,13 @@ describe('utility commands', () => {
       kind: 'collection',
       title: 'PHONIX | Historico recente',
       description: 'Estas sao as ultimas faixas registradas.',
+      panel: {
+        surface: 'history',
+        guildId: 'guild-1',
+        userId: 'user-1',
+        contextId: null,
+        hasLeadAction: true,
+      },
       collectionTitle: 'Ultimas reproducoes',
       leadTrack: null,
       entries: [
@@ -48,7 +55,12 @@ describe('utility commands', () => {
       {} as never,
     );
 
-    expect(history).toHaveBeenCalledWith('user-1');
+    expect(history).toHaveBeenCalledWith({
+      guildId: 'guild-1',
+      user: { id: 'user-1' },
+      member: {},
+      metadata: { textChannelId: 'text-1' },
+    });
     expect(payload?.flags).toBe(MessageFlags.IsComponentsV2);
     const rendered = renderDiscordValue<{ components?: Array<{ content?: string }> }>(payload?.components?.[0] as never);
     expect(rendered?.components?.some((component) => component.content?.includes('PHONIX | Historico recente'))).toBe(true);

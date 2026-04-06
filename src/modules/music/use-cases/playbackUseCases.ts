@@ -36,6 +36,7 @@ interface PlaybackUseCaseDeps {
 interface PlaybackBaseInput {
   guildId: string;
   member: GuildMember;
+  userId?: string;
 }
 
 interface PlaybackActionInput extends PlaybackBaseInput {
@@ -98,7 +99,7 @@ export function createPlaybackUseCases(deps: PlaybackUseCaseDeps) {
         throw mapRecoverError(error);
       }
 
-      return toRecoverView(result);
+      return toRecoverView(result, input.user.id, input.guildId);
     },
 
     async pause(input: PlaybackBaseInput): Promise<PlaybackActionResult> {
@@ -219,13 +220,13 @@ export function createPlaybackUseCases(deps: PlaybackUseCaseDeps) {
     async queue(input: PlaybackBaseInput): Promise<PlaybackActionResult> {
       const queue = requireActiveQueue(deps, input);
       const diagnostics = await deps.playbackSessionManager.getDiagnostics(input.guildId);
-      return toQueueView(queue, diagnostics, deps.music);
+      return toQueueView(queue, diagnostics, deps.music, input.userId);
     },
 
     async nowPlaying(input: PlaybackBaseInput): Promise<PlaybackActionResult> {
       const queue = requireActiveQueue(deps, input);
       const diagnostics = await deps.playbackSessionManager.getDiagnostics(input.guildId);
-      return toNowPlayingView(queue, diagnostics, deps.music);
+      return toNowPlayingView(queue, diagnostics, deps.music, input.userId);
     },
 
     async volume(input: VolumeInput): Promise<PlaybackActionResult> {
@@ -430,6 +431,12 @@ function toPlayResultView(result: Awaited<ReturnType<MusicService['play']>>): Pl
     kind: 'play',
     title: buildPlayTitle(result),
     description,
+    navigation: result.track.requestedBy?.id
+      ? {
+          guildId: result.queue.guild.id,
+          userId: result.track.requestedBy.id,
+        }
+      : undefined,
     track: toTrackCardView(result.track, {
       sourceLabel: formatSourceLabel(result.provider, { routeKind: result.routeKind }),
     }),
@@ -566,7 +573,12 @@ function buildPlayHint(result: Awaited<ReturnType<MusicService['play']>>) {
   return 'Use `/queue` para revisar a fila, `/nowplaying` para focar na musica atual ou `/play mode:next` para encaixar outra faixa logo em seguida.';
 }
 
-function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSessionDiagnostics, music: MusicService): QueueView {
+function toQueueView(
+  queue: GuildQueue<QueueMetadata>,
+  diagnostics: PlaybackSessionDiagnostics,
+  music: MusicService,
+  userId?: string,
+): QueueView {
   const current = queue.currentTrack;
   const currentRoute = current ? music.inferTrackRoute?.(current) ?? inferTrackPlaybackRoute(current) : null;
   const visibleUpcoming = queue.tracks.toArray().slice(0, 10);
@@ -585,6 +597,12 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
     description: current
       ? `Sessao ativa em **${queue.channel?.name ?? 'canal nao identificado'}**. O PHONIX mostra o que esta tocando agora, o que vem depois e como a sessao esta se comportando.`
       : 'A fila existe, mas nenhuma faixa entrou no ar ainda. Use `/play` ou `!tocar` para iniciar a sessao.',
+    navigation: userId
+      ? {
+          guildId: queue.guild.id,
+          userId,
+        }
+      : undefined,
     currentTrack: current
       ? toTrackCardView(current, {
           sourceLabel: currentRoute ? formatSourceLabel(currentRoute.provider, { routeKind: currentRoute.routeKind }) : null,
@@ -595,6 +613,7 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
     size: queue.size,
     durationFormatted: queue.durationFormatted,
     hiddenTrackCount: Math.max(queue.size - visibleUpcoming.length, 0),
+    playbackStateLabel: resolvePlaybackStateLabel(queue),
     volume: queue.node.volume,
     voiceChannelName: queue.channel?.name ?? null,
     repeatModeLabel: resolveLoopModeLabel(queue.repeatMode),
@@ -603,7 +622,12 @@ function toQueueView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSess
   };
 }
 
-function toNowPlayingView(queue: GuildQueue<QueueMetadata>, diagnostics: PlaybackSessionDiagnostics, music: MusicService): NowPlayingView {
+function toNowPlayingView(
+  queue: GuildQueue<QueueMetadata>,
+  diagnostics: PlaybackSessionDiagnostics,
+  music: MusicService,
+  userId?: string,
+): NowPlayingView {
   const track = queue.currentTrack;
   const nextTrack = queue.tracks.at(0);
   const trackRoute = track ? music.inferTrackRoute?.(track) ?? inferTrackPlaybackRoute(track) : null;
@@ -614,12 +638,19 @@ function toNowPlayingView(queue: GuildQueue<QueueMetadata>, diagnostics: Playbac
     description: track
       ? `**${track.title}** esta tocando agora em **${queue.channel?.name ?? 'canal nao identificado'}**.`
       : 'A fila ainda nao iniciou nenhuma faixa. Use `/play` ou `!tocar` para comecar.',
+    navigation: userId
+      ? {
+          guildId: queue.guild.id,
+          userId,
+        }
+      : undefined,
     track: track
       ? toTrackCardView(track, {
           sourceLabel: trackRoute ? formatSourceLabel(trackRoute.provider, { routeKind: trackRoute.routeKind }) : null,
         })
       : null,
     progressBar: track ? (queue.node.createProgressBar?.() ?? 'Progresso indisponivel.') : null,
+    playbackStateLabel: resolvePlaybackStateLabel(queue),
     volume: queue.node.volume,
     voiceChannelName: queue.channel?.name ?? null,
     queueSize: queue.size,
@@ -768,7 +799,35 @@ function formatEnabled(value: boolean) {
   return value ? 'sim' : 'nao';
 }
 
-function toRecoverView(result: PlaybackRecoveryResult): RecoverView {
+function resolvePlaybackStateLabel(queue: GuildQueue<QueueMetadata>) {
+  const isPaused =
+    typeof queue.node.isPaused === 'function' ? queue.node.isPaused() : false;
+  if (isPaused) {
+    return 'pausada';
+  }
+
+  const isPlaying =
+    typeof queue.isPlaying === 'function'
+      ? queue.isPlaying()
+      : typeof queue.node.isPlaying === 'function'
+        ? queue.node.isPlaying()
+        : Boolean(queue.currentTrack);
+  if (isPlaying) {
+    return 'tocando';
+  }
+
+  if (queue.currentTrack || queue.size > 0) {
+    return 'preparando';
+  }
+
+  return 'ociosa';
+}
+
+function toRecoverView(
+  result: PlaybackRecoveryResult,
+  userId: string,
+  guildId: string,
+): RecoverView {
   const highlightedTrack = result.session?.currentTrack ?? result.session?.items.at(0)?.track ?? null;
 
   return {
@@ -779,6 +838,10 @@ function toRecoverView(result: PlaybackRecoveryResult): RecoverView {
       result.sessionHealth === 'partial'
         ? `A sessao voltou para o seu canal, mas apenas **${result.recoveredTrackCount}** de **${result.requestedTrackCount}** faixa(s) continuaram tocaveis.`
         : `A fila salva voltou para o seu canal com **${result.recoveredTrackCount}** faixa(s) restaurada(s).`,
+    navigation: {
+      guildId,
+      userId,
+    },
     track: highlightedTrack
       ? toTrackCardView(highlightedTrack, {
           sourceLabel: formatSourceLabel(highlightedTrack.source),

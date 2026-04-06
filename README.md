@@ -2,7 +2,7 @@
 
 ![PHONIX Banner](assets/banner.png)
 
-PHONIX `v2.2.0` is a production-oriented Discord music bot built with TypeScript + Node.js. It is designed around stable playback, guild-aware recovery, operational diagnostics, guided command UX, and an opt-in Admin Center that runs in the same runtime as the bot.
+PHONIX `v2.3.0` is a production-oriented Discord music bot built with TypeScript + Node.js. It is designed around stable playback, guild-aware recovery, operational diagnostics, guided command UX, actionable Discord panels, and an opt-in Admin Center that runs in the same runtime as the bot.
 
 Visual identity: `Deep Space / Navy Core / Electric Blue / Cyan Signal / Ice White`
 
@@ -15,6 +15,7 @@ Visual identity: `Deep Space / Navy Core / Electric Blue / Cyan Signal / Ice Whi
 - Personal favorites, playlists and playback history
 - Owner-only operational control with `/owner` plus startup DM to the official owner account
 - Opt-in Admin Center with Discord OAuth, guild filtering and administrative session hardening
+- Action-oriented Discord panels that can refresh or steer the current session without spamming the channel
 
 ## Product surfaces
 
@@ -33,25 +34,18 @@ Current Admin Center areas:
 - `Diagnostics`
 - `Operations`
 
-## Current release: `v2.2.0 - Signal Surfaces`
+## Current release: `v2.3.0 - Discord Interaction System`
 
-The current release line focuses on premium Discord presentation without dropping the operational clarity added in `Smart Session`:
+The current release line focuses on turning PHONIX panels into practical Discord work surfaces without dropping the operational clarity added in `Smart Session` and `Signal Surfaces`:
 
-- selective `Components V2` adoption for `play`, `queue`, `nowplaying`, `config view` and `doctor`
-- premium recovery and library list surfaces for `recover`, `favorite list`, `playlist list` and `history`
-- stronger hierarchy for operational panels, with denser blocks that still read well on desktop and mobile
-- PHONIX branding through consistent author/footer/media assets instead of emoji-heavy language
-- a hybrid message strategy: interactive help and short transactional notices stay on classic embeds/action rows where that remains clearer and safer
-- explicit `session health` by guild
-- stronger `recover` feedback
-- `queue` and `nowplaying` as session panels instead of plain text dumps
-- richer telemetry for `session_pending`, `session_restored`, `session_partial` and `session_broken`
-- clearer `doctor`, `config`, `help`, library notices and owner operations
-- controlled errors now distinguish better between stream lookup failures and unusable saved recovery sessions
-- real `fidelity/youtubei` stream-open failures can trigger an automatic one-shot runtime downgrade to `compatibility/youtube-dl`, with the downgraded state surfaced in diagnostics
-- `play` now reports the operational entry path more clearly, including whether PHONIX had to prepare the voice connection, whether playback actually started before the reply, and whether a runtime fallback was needed
-- `nowplaying`, `queue` and started-play results now use stronger media presentation with artwork, source labeling and direct track links when metadata is available
-- `doctor` and `config view` now render as premium operational panels instead of embed-shaped dumps
+- `play`, `queue`, `nowplaying`, `recover`, `config view` and `doctor` now work as action-oriented panels, not just read-only status cards
+- queue, now playing and doctor surfaces can refresh in place; `queue` can shuffle inline, `nowplaying` can pause/resume inline, and `config view` can toggle autoplay/resume queue inline
+- the same panel message is updated in place, which reduces chat spam and keeps interaction anchored to the command that opened the surface
+- selective `Components V2` adoption remains intentional for dense operational surfaces, while `help` stays on classic embeds plus select/button navigation because that UX is still clearer there
+- premium recovery and library list surfaces introduced in `v2.2.0` stay intact, and library collections now gain selective quick actions such as `Tocar destaque` and `Abrir destaque` without replacing the explicit command-driven flows for indexed or named mutations
+- PHONIX branding now leans on consistent assets, color states and hierarchy instead of emoji-heavy language
+- `play` keeps its clearer operational entry report, including voice preparation, session reuse, confirmed playback start and runtime fallback/downgrade when it happens
+- `queue`, `nowplaying` and `recover` continue to expose `session health`, recovery state and route context while becoming more practical to act on
 
 ## Architecture at a glance
 
@@ -115,6 +109,7 @@ Detailed architecture:
 - guided errors for voice permissions, unsupported URLs, invalid sources and recovery conflicts
 - richer `play` feedback for `started now` versus `queued`, with operational context about connection/session startup
 - artwork-backed `nowplaying` and queue context when track metadata includes a usable thumbnail or cover
+- in-place actions on the main Discord panels, including queue refresh/shuffle, now playing pause/resume and config toggles
 
 ### Smart Session and recovery
 
@@ -130,6 +125,7 @@ Detailed architecture:
 - `/playlist create`, `/playlist add`, `/playlist play`, `/playlist list`, `/playlist remove`, `/playlist delete`
 - `/history`
 - visual library panels for favorites, playlists and recent history, with artwork/source metadata when the stored item has usable media context
+- quick actions on library panels for highlighted favorites, highlighted playlists and the most recent history item, while explicit index/name flows remain the source of truth for precise mutations
 
 ### Admin and diagnostics
 
@@ -203,6 +199,7 @@ Spotify support is optional and currently works through bridge behavior:
 - PHONIX works in servers, not direct-message music sessions
 - the Admin Center is complementary and does not replace the Discord surface
 - the web panel does not play music, edit live queues or expose a public dashboard
+- not every Discord surface should be `Components V2`; `help` remains classic for navigation ergonomics and precise library mutations still stay command-driven when indices and names are clearer than overloaded buttons
 - exact resume from the previous playback timestamp is `NAO IMPLEMENTADO AINDA`
 - real OAuth verification, Smart Session behavior after restart and owner DM delivery still require manual validation outside the automated suite
 

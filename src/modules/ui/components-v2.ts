@@ -230,6 +230,7 @@ export const componentsV2 = {
             : ['A fila nao tem proximas faixas. Use `/play`, `!tocar`, `/favorite play` ou `/playlist play` para continuar.'],
         ),
         textBlock('Playback agora', [
+          `Estado: **${view.playbackStateLabel ?? 'desconhecido'}**`,
           `Canal: **${view.voiceChannelName ?? 'nao identificado'}**`,
           `Volume: **${view.volume}%**`,
           `Loop: **${view.repeatModeLabel}**`,
@@ -311,6 +312,7 @@ export const componentsV2 = {
     container.addTextDisplayComponents(
       textBlock('Progresso', [view.progressBar ?? 'Progresso indisponivel.']),
       textBlock('Playback agora', [
+        `Estado: **${view.playbackStateLabel ?? 'desconhecido'}**`,
         `Canal: **${view.voiceChannelName ?? 'nao identificado'}**`,
         `Volume: **${view.volume}%**`,
         `Loop: **${view.repeatModeLabel}**`,
